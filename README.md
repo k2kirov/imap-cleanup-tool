@@ -93,7 +93,7 @@ opens in your browser.
 
 | Platform | Get it |
 | --- | --- |
-| **Windows** | **[Download the installer (.exe)](https://github.com/mrpickles007/imap-cleanup-tool/releases/latest/download/imap-cleanup-tool-windows-setup.exe)** - *coming soon to the Microsoft Store* |
+| **Windows** | **[Download the installer (.exe)](https://github.com/mrpickles007/imap-cleanup-tool/releases/latest/download/imap-cleanup-tool-windows-setup.exe)** - **[Install From Microsoft Store](https://apps.microsoft.com/detail/9nwgg8zmj9s8?hl=en-US&gl=MT)** |
 | **Linux** | **[Download the AppImage](https://github.com/mrpickles007/imap-cleanup-tool/releases/latest/download/imap-cleanup-tool-x86_64.AppImage)** - single file, no install |
 | **macOS / other** | Install from source with `pip` - see [Install](#install) |
 
