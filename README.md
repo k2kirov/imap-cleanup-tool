@@ -421,6 +421,23 @@ imap-cleanup-tool --host HOST --user USER \
 > If you run an `--ai-cleanup` command without the `[ai]` extra installed, the CLI
 > stops with a clear message telling you to `pip install "imap-cleanup-tool[ai]"`.
 
+### Inbox sort
+
+The **Inbox sort** tab scans `INBOX` headers and suggests **Social**, **Other**,
+or **Inbox** for each message. It does not read bodies. A suggestion does not move
+mail. Use **Move message** to move one checked message to `INBOX.Social` or
+`INBOX.Other`; the app verifies its UID, sender, subject, date, and UIDVALIDITY
+first. This path never uses Trash. Leave a message alone to keep it in INBOX.
+
+Tick **Suggest on future scans** with a move to save a per-account sender rule. The
+rule changes future previews. It does not start a background sorter. Use
+**Keep sender** to save an Inbox rule, or **Forget** to remove a rule. Security,
+billing, receipts, delivery, calendar invitations, and other protected subjects
+stay in Inbox even when a sender rule points elsewhere.
+
+This is a local review workflow inspired by [SaneBox's folder sorting](https://www.sanebox.com/faq) and
+training. It is not a SaneBox integration.
+
 ### Reports tab
 
 Every AI report or run saves a timestamped CSV (**per account**, in `ai_reports/`).
@@ -638,9 +655,11 @@ python -m unittest discover -s tests -v
 | `--ai-include-self` | Include your own mailbox address in the report (by default it is excluded). |
 | `--ai-weight KEY=VALUE` | Override a heuristic weight (repeatable): `list_unsubscribe`, `unread_ratio`, `bulk`, `sender_pattern`, `frequency`. |
 | `--ai-report-only` | Build the report (and LLM verdicts if `--ai-model` is given) but delete nothing; a model is optional. |
+| `--ai-review-obsolete` | Add clear social and marketing hints plus routine service alerts older than 180 days to the AI review queue. Requires `--ai-cleanup --ai-report-only`. No mail action is allowed. |
+| `--ai-obsolete-example TEXT` | Give the report-only model a user-approved low-value example (repeatable). |
 | `--ai-report-csv PATH` | Write the report as CSV (Excel-friendly) to `PATH`. |
 | `--ai-flag-spam` | On delete, first move one message per confirmed sender to Junk/Spam (trains the server), then delete the rest. Needs a Junk/Spam folder. |
-| `--ai-no-check-spam` | Re-evaluate every flagged sender with the LLM. By default, senders already in the saved Spam list are accepted as spam without asking the model (saves tokens). |
+| `--ai-no-check-spam` | Re-evaluate every flagged sender with the LLM. By default, only senders with a saved affirmative model verdict skip re-evaluation. |
 | `--dry-run` | Report only; make no changes. |
 | `--expunge` | Permanently remove after flagging. |
 | `--yes` | Skip the confirmation prompt (for scripts/cron). |

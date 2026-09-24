@@ -15,9 +15,9 @@ import os
 import re
 import tempfile
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from email.header import decode_header, make_header
-from email.utils import parseaddr
+from email.utils import parseaddr, parsedate_to_datetime
 
 from .targets import sender_matches
 
@@ -669,6 +669,35 @@ DEFAULT_WEIGHTS = {
 _BULK_LOCALPARTS = re.compile(
     r"^(no[-_.]?reply|do[-_.]?not[-_.]?reply|newsletter|news|notif\w*|mailer|"
     r"marketing|updates?|alerts?|bounce|info|noreply)\b", re.IGNORECASE)
+_OBSOLETE_SUBJECT_HINT = re.compile(
+    r"\b(?:people viewed your profile|profile views?|newsletter|webinar|"
+    r"special offer|promotional courses?|spaces for our .* workshop)\b",
+    re.IGNORECASE)
+_PROTECTED_SUBJECT_HINT = re.compile(
+    r"\b(?:pin|sign[ -]?in|password|order|invoice|receipt|payment|billing|"
+    r"security|verif\w*|account|subscription|appointment|booking|delivery|"
+    r"shipping|shipment|contract|agreement|unsubscribed)\b", re.IGNORECASE)
+_SERVICE_ALERT_SUBJECT_HINT = re.compile(
+    r"\b(?:scheduled maintenance|maintenance (?:notice|complete[ds]?)|"
+    r"(?:service|system) (?:outage|incident|status alert)|"
+    r"(?:backup|sync|job|task) (?:completed|failed)|"
+    r"(?:daily|weekly) (?:status|activity) (?:report|digest))\b",
+    re.IGNORECASE)
+
+
+def _old_service_alert(subject: str, date_header: str) -> bool:
+    """Select dated routine alerts older than 180 days for review only."""
+    if not _SERVICE_ALERT_SUBJECT_HINT.search(subject):
+        return False
+    try:
+        sent = parsedate_to_datetime(date_header)
+    except (TypeError, ValueError):
+        return False
+    if sent is None:
+        return False
+    if sent.tzinfo is None:
+        sent = sent.replace(tzinfo=timezone.utc)
+    return sent <= datetime.now(timezone.utc) - timedelta(days=180)
 
 
 def _seen_from_meta(meta: bytes) -> bool:
@@ -789,6 +818,7 @@ def _fetch_sender_meta(conn: imaplib.IMAP4_SSL, uids: list[bytes],
 
 def build_ai_report(conn: imaplib.IMAP4_SSL, folders: list[str], *,
                     threshold: float = 6.0, sample_size: int = 5,
+                    review_obsolete: bool = False,
                     exclude: set[str] | None = None,
                     weights: dict | None = None,
                     addresses: set[str] | None = None,
@@ -804,6 +834,8 @@ def build_ai_report(conn: imaplib.IMAP4_SSL, folders: list[str], *,
     list) is given, only those messages are analysed; otherwise the **whole
     folder** is analysed (like move-all). Returns a JSON-friendly report; senders
     scoring >= ``threshold`` are flagged and carry a small sample of subjects.
+    ``review_obsolete`` also flags senders with clear low-value subject hints,
+    unless another subject from that sender names a protected topic.
     Local-only: no network, no LLM.
     """
     weights = {**DEFAULT_WEIGHTS, **(weights or {})}
@@ -845,12 +877,18 @@ def build_ai_report(conn: imaplib.IMAP4_SSL, folders: list[str], *,
                 continue
             s = agg.setdefault(sender, {"count": 0, "unread": 0, "unsub": False,
                                         "bulk": False, "dates": [], "samples": [],
-                                        "unsub_value": "", "unsub_post": ""})
+                                        "unsub_value": "", "unsub_post": "",
+                                        "obsolete_hint": False,
+                                        "old_service_hint": False,
+                                        "protected_hint": False})
             s["count"] += 1
             if not seen:
                 s["unread"] += 1
             s["unsub"] = s["unsub"] or unsub
             s["bulk"] = s["bulk"] or bulk
+            s["obsolete_hint"] |= bool(_OBSOLETE_SUBJECT_HINT.search(subject))
+            s["old_service_hint"] |= _old_service_alert(subject, date_h)
+            s["protected_hint"] |= bool(_PROTECTED_SUBJECT_HINT.search(subject))
             if unsub_value and not s["unsub_value"]:
                 s["unsub_value"], s["unsub_post"] = unsub_value, unsub_post
             if date_h:
@@ -876,24 +914,33 @@ def build_ai_report(conn: imaplib.IMAP4_SSL, folders: list[str], *,
         from .unsubscribe import parse_list_unsubscribe
         unsub = parse_list_unsubscribe(s.get("unsub_value", ""),
                                        s.get("unsub_post", ""))
+        hint_candidate = (review_obsolete and
+                          (s["obsolete_hint"] or s["old_service_hint"])
+                          and not s["protected_hint"])
+        flagged = score >= threshold or hint_candidate
         senders.append({
             "sender": sender, "count": s["count"], "unread": s["unread"],
             "unread_ratio": round(unread_ratio, 3),
             "per_week": round(per_week, 2),
             "list_unsubscribe": s["unsub"], "bulk": s["bulk"],
             "sender_pattern": pattern, "score": score,
-            "flagged": score >= threshold,
-            "samples": s["samples"] if score >= threshold else [],
+            "flagged": flagged,
+            "candidate_reason": ("score" if score >= threshold else
+                                 "old_service_alert" if hint_candidate and
+                                 s["old_service_hint"] else
+                                 "obsolete_subject" if hint_candidate else ""),
+            "samples": s["samples"] if flagged else [],
             "unsub_mailto": unsub["mailto"], "unsub_http": unsub["http"],
             "unsub_oneclick": unsub["oneclick"],
         })
     senders.sort(key=lambda x: x["score"], reverse=True)
     flagged = [s for s in senders if s["flagged"]]
     flagged_messages = sum(s["count"] for s in flagged)
-    logger.info("AI report: %d sender(s), %d above threshold %.1f.",
+    logger.info("AI report: %d sender(s), %d review candidate(s) "
+                "(score threshold %.1f).",
                 len(senders), len(flagged), threshold)
-    logger.info("=> %d email(s) from %d flagged sender(s) are potentially "
-                "deletable.", flagged_messages, len(flagged))
+    logger.info("=> %d message(s) from %d sender(s) selected for AI review.",
+                flagged_messages, len(flagged))
     return {"folders": folders, "threshold": threshold, "sample_size": sample_size,
             "weights": weights, "total_senders": len(senders),
             "flagged_count": len(flagged), "flagged_messages": flagged_messages,
@@ -910,6 +957,7 @@ def ai_report_csv(report: dict) -> str:
     buf = io.StringIO()
     cols = ["sender", "score", "flagged", "messages", "unread", "unread_pct",
             "per_week", "list_unsubscribe", "bulk", "sender_pattern",
+            "candidate_reason",
             "verdict_delete", "verdict_reason", "verdict_confidence",
             "sample_subjects"]
     writer = csv.writer(buf)
@@ -928,6 +976,7 @@ def ai_report_csv(report: dict) -> str:
             "yes" if s.get("list_unsubscribe") else "no",
             "yes" if s.get("bulk") else "no",
             "yes" if s.get("sender_pattern") else "no",
+            s.get("candidate_reason", ""),
             ("yes" if v.get("delete") else "no") if v else "",
             v.get("reason", "") if v else "",
             v.get("confidence", "") if v else "",

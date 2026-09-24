@@ -113,6 +113,53 @@ class AiReportTests(unittest.TestCase):
         self.assertTrue(by["newsletter@shop.com"]["samples"])
         self.assertEqual(by["alice@friends.com"]["samples"], [])
 
+    def test_obsolete_review_finds_social_alert_below_score_gate(self):
+        msgs = [
+            {"from": "messages-noreply@linkedin.com", "date": "",
+             "subject": "5 people viewed your profile", "seen": True},
+            {"from": "security-noreply@linkedin.com", "date": "",
+             "subject": "Sign in alert for your LinkedIn account", "seen": False},
+            {"from": "billing-noreply@linkedin.com", "date": "",
+             "subject": "Your LinkedIn Order 123", "seen": False},
+        ]
+        ordinary = self._report(msgs, threshold=6)
+        self.assertEqual(ordinary["flagged_count"], 0)
+        review = self._report(msgs, threshold=6, review_obsolete=True)
+        flagged = {s["sender"] for s in review["senders"] if s["flagged"]}
+        self.assertEqual(flagged, {"messages-noreply@linkedin.com"})
+
+    def test_obsolete_review_keeps_mixed_sender_out_of_hint_queue(self):
+        msgs = [
+            {"from": "updates@example.com", "date": "",
+             "subject": "Our monthly newsletter", "seen": True},
+            {"from": "updates@example.com", "date": "",
+             "subject": "Your payment receipt", "seen": True},
+        ]
+        review = self._report(msgs, threshold=6, review_obsolete=True)
+        self.assertFalse(review["senders"][0]["flagged"])
+
+    def test_old_service_alert_selected_only_when_old_and_unprotected(self):
+        msgs = [
+            {"from": "alerts@tool.example", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
+             "subject": "Daily status report", "seen": True},
+            {"from": "alerts@other.example", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
+             "subject": "Backup failed", "seen": True},
+            {"from": "alerts@current.example", "date": "Mon, 1 Jan 2029 10:00:00 +0000",
+             "subject": "Backup failed", "seen": True},
+            {"from": "alerts@billing.example", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
+             "subject": "Daily status report", "seen": True},
+            {"from": "alerts@billing.example", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
+             "subject": "Payment receipt", "seen": True},
+            {"from": "hello@delivery.example", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
+             "subject": "DHL shipping notification arrival", "seen": True},
+        ]
+        report = self._report(msgs, threshold=6, review_obsolete=True)
+        by = {s["sender"]: s for s in report["senders"]}
+        self.assertEqual({s for s, row in by.items() if row["flagged"]},
+                         {"alerts@tool.example", "alerts@other.example"})
+        self.assertEqual(by["alerts@tool.example"]["candidate_reason"],
+                         "old_service_alert")
+
     def test_report_counts_flagged_messages(self):
         msgs = [
             {"from": "n@shop.com", "date": "Mon, 1 Jan 2024 10:00:00 +0000",
@@ -220,6 +267,33 @@ class LLMHelpersTests(unittest.TestCase):
                                    '"delete":true}]}')
         self.assertTrue(out["a@b.com"]["delete"])
 
+    def test_model_timeout_does_not_start_second_request(self):
+        class Client:
+            calls = 0
+
+            def completion(self, **_kwargs):
+                self.calls += 1
+                raise TimeoutError("model timeout")
+
+        client = Client()
+        with self.assertRaises(TimeoutError):
+            ai._call_once(client, {})
+        self.assertEqual(client.calls, 1)
+
+    def test_model_falls_back_when_json_mode_is_unsupported(self):
+        class Client:
+            calls = 0
+
+            def completion(self, **kwargs):
+                self.calls += 1
+                if "response_format" in kwargs:
+                    raise ValueError("response_format unsupported")
+                return "ok"
+
+        client = Client()
+        self.assertEqual(ai._call_once(client, {}), "ok")
+        self.assertEqual(client.calls, 2)
+
     def test_evaluate_retries_then_succeeds(self):
         """evaluate() retries the model until it returns valid JSON."""
         replies = ["garbage", "still bad",
@@ -299,6 +373,37 @@ class LLMHelpersTests(unittest.TestCase):
             self.assertEqual(calls["n"], 3)             # ceil(5/2) batches
             self.assertEqual(calls["batch_sizes"], [2, 2, 1])
             self.assertEqual(len(ev["verdicts"]), 5)    # all merged
+        finally:
+            del sys.modules["litellm"]
+
+    def test_report_only_review_keeps_failed_model_batch_and_continues(self):
+        import sys
+        import types
+        import json as _json
+
+        def fake_completion(**kw):
+            sender = _json.loads(kw["messages"][1]["content"].split("\n", 1)[1])[0]["sender"]
+            if sender == "failed@x.com":
+                raise RuntimeError("model timeout")
+            content = _json.dumps({"verdicts": [{"sender": sender, "delete": True}]})
+            message = types.SimpleNamespace(content=content)
+            choice = types.SimpleNamespace(message=message)
+            return types.SimpleNamespace(choices=[choice], usage=None)
+
+        fake = types.ModuleType("litellm")
+        fake.completion = fake_completion
+        sys.modules["litellm"] = fake
+        try:
+            senders = [{"sender": name, "flagged": True, "count": 1,
+                        "unread_ratio": 0, "per_week": 1,
+                        "list_unsubscribe": False, "score": 3, "samples": []}
+                       for name in ("failed@x.com", "good@x.com")]
+            result = ai.evaluate({"senders": senders}, {"model": "test/m"},
+                                 batch_size=1, max_retries=1,
+                                 allow_partial=True)
+            self.assertFalse(result["verdicts"]["failed@x.com"]["delete"])
+            self.assertIn("model error", result["verdicts"]["failed@x.com"]["reason"])
+            self.assertTrue(result["verdicts"]["good@x.com"]["delete"])
         finally:
             del sys.modules["litellm"]
 
@@ -437,7 +542,17 @@ class LLMHelpersTests(unittest.TestCase):
         low = system.lower()
         for kw in ("order", "appointment", "medical", "security", "personal"):
             self.assertIn(kw, low)
+        self.assertIn("profile-view", low)
+        self.assertIn("score", low)
+        self.assertIn("read message can still be obsolete", low)
+        self.assertIn("does not block the sender", low)
         self.assertIn("STRICT JSON", system)
+
+    def test_user_obsolete_examples_are_explicit_in_model_prompt(self):
+        system, _ = ai.build_messages({"senders": []},
+                                      user_examples=["LinkedIn profile-view alerts"])
+        self.assertIn("User-approved low-value examples", system)
+        self.assertIn("LinkedIn profile-view alerts", system)
 
     def test_build_messages_only_flagged(self):
         report = {"senders": [

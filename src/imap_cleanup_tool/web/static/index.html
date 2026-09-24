@@ -55,6 +55,15 @@ tailwind.config = { theme: { extend: {
   .console{font-family:"Consolas","SFMono-Regular",ui-monospace,monospace}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a3350;border-radius:8px}
   input:disabled,select:disabled,button:disabled{opacity:.45;cursor:not-allowed}
+  @media(max-width:640px){
+    .triage-table,.triage-table tbody,.triage-table tr,.triage-table td{display:block;width:100%}
+    .triage-table thead{display:none}
+    .triage-table tr{padding:12px 0}
+    .triage-table td{min-width:0!important;padding:4px 0}
+    .triage-table td:nth-child(2)::before{content:"Date: ";font-weight:600}
+    .triage-table td:nth-child(3){padding-top:8px}
+    .triage-table td:nth-child(4){padding-top:10px}
+  }
   .field{background:#0f1626;border:1px solid #33415c;border-radius:8px;padding:8px 10px;color:#eef1f7;font-size:14px;width:100%}
   .field::placeholder{color:#7c87a6}
   .field:focus{outline:none;border-color:#1890d8;box-shadow:0 0 0 2px rgba(24,144,216,.25)}
@@ -152,6 +161,7 @@ tailwind.config = { theme: { extend: {
   <!-- desktop tabs -->
   <div class="hidden sm:flex max-w-[1600px] mx-auto px-4 sm:px-6 pt-1.5 pb-3 gap-2">
     <div class="tab active" data-tab="cleanup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Cleanup</div>
+    <div class="tab" data-tab="triage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="m8 12 2 2 4-4"/></svg>Inbox sort</div>
     <div class="tab" data-tab="scheduling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Scheduling</div>
     <div class="tab" data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>Reports</div>
     <div class="tab" data-tab="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/></svg>LLM</div>
@@ -174,6 +184,7 @@ tailwind.config = { theme: { extend: {
     </div>
     <nav class="flex flex-col gap-1">
       <button class="navitem active" data-tab="cleanup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Cleanup</button>
+      <button class="navitem" data-tab="triage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="m8 12 2 2 4-4"/></svg>Inbox sort</button>
       <button class="navitem" data-tab="scheduling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Scheduling</button>
       <button class="navitem" data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>Reports</button>
       <button class="navitem" data-tab="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/></svg>LLM</button>
@@ -571,6 +582,39 @@ tailwind.config = { theme: { extend: {
     </div>
   </section>
 
+</div>
+
+<!-- ============================ INBOX SORT TAB ============================ -->
+<div id="tab-triage" class="hidden space-y-5">
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div><h2 class="font-display text-xl font-semibold text-brand-light">Sort your inbox</h2>
+        <p class="text-muted text-sm mt-2 max-w-2xl">Scan message headers. Review each suggestion. Move one message to Social or Other. Unselected mail stays in INBOX.</p></div>
+      <button id="triageScan" type="button" class="px-4 py-2 rounded-lg bg-brand text-ink font-semibold hover:bg-brand-light">Scan inbox</button>
+    </div>
+    <p id="triageStatus" class="text-sm text-muted mt-4">Connect in Cleanup, then scan the inbox.</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-sm">
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageTotal" class="block text-xl text-cream">—</strong><span class="text-muted">Inbox messages</span></div>
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageSocial" class="block text-xl text-cream">—</strong><span class="text-muted">Social suggestions</span></div>
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageOther" class="block text-xl text-cream">—</strong><span class="text-muted">Other suggestions</span></div>
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageInbox" class="block text-xl text-cream">—</strong><span class="text-muted">Stay in inbox</span></div>
+    </div>
+    <div class="flex flex-wrap gap-3 mt-5">
+      <label class="text-sm text-muted">Show
+        <select id="triageFilter" class="field mt-1"><option value="suggested">Suggestions</option><option value="all">All messages</option><option value="social">Social</option><option value="other">Other</option><option value="inbox">Inbox</option></select>
+      </label>
+      <label class="text-sm text-muted flex-1 min-w-[180px]">Find sender or subject
+        <input id="triageSearch" class="field mt-1" type="search" placeholder="Search scanned messages">
+      </label>
+    </div>
+    <p id="triageShown" class="text-xs text-muted mt-3"></p>
+    <div class="overflow-x-auto mt-3"><table class="triage-table w-full text-sm"><thead><tr class="text-muted text-left border-b border-line"><th class="py-2 pr-3">Message</th><th class="py-2 pr-3">Date</th><th class="py-2 pr-3">Suggestion</th><th class="py-2">Your choice</th></tr></thead><tbody id="triageRows"></tbody></table></div>
+  </section>
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <h2 class="font-display font-semibold text-brand-light">Your sender rules</h2>
+    <p class="text-sm text-muted mt-2">Tick “Suggest on future scans” when you move a message. A protected subject still stays in the inbox.</p>
+    <div id="triageRules" class="text-sm text-muted mt-4">No sender rules yet.</div>
+  </section>
 </div>
 
 <!-- ============================ SCHEDULING TAB ============================ -->
@@ -1885,7 +1929,7 @@ async function loadJobs(){
 }
 
 /* ---------- events ---------- */
-const TABS=['cleanup','scheduling','report','llm','notifications','spam'];
+const TABS=['cleanup','triage','scheduling','report','llm','notifications','spam'];
 function switchTab(name){
   if(!TABS.includes(name)) name='cleanup';
   try{ localStorage.setItem('icw_tab', name); }catch(_){}
@@ -1893,6 +1937,7 @@ function switchTab(name){
   TABS.forEach(t=>{ const el=$('tab-'+t); if(el) el.classList.toggle('hidden', t!==name); });
   if(name==='scheduling'){ populateJobProfiles(); updateSchedInputs(); loadJobs(); loadLLMModels(); loadSmtp().then(()=>{ populateJobSmtp(); updateJobSummary(); }); updateJobSummary(); }
   if(name==='report'){ loadAiReports(); }
+  if(name==='triage' && SID && !triagePreview){ loadTriage(); }
   if(name==='llm'){ loadLLMModels(); }
   if(name==='notifications'){ loadSmtp(); }
   if(name==='spam'){ spamState.offset=0; loadSpam(); }
@@ -2124,6 +2169,80 @@ if($('reportPrev')) $('reportPrev').onclick=()=>{ if(reportPage>0){ reportPage--
 if($('reportNext')) $('reportNext').onclick=()=>{ const pages=Math.ceil(filteredReports().length/reportPageSize); if(reportPage<pages-1){ reportPage++; renderReports(); } };
 if($('btnReportZip')) $('btnReportZip').onclick=()=>downloadReportsZip(Array.from(reportSel));
 if($('btnReportDelete')) $('btnReportDelete').onclick=()=>deleteReports(Array.from(reportSel));
+
+/* ---------- Inbox sort: message-level preview and checked moves ---------- */
+let triagePreview=null;
+function renderTriage(){
+  const rows=triagePreview?.rows||[];
+  const counts={social:0,other:0,inbox:0};
+  rows.forEach(r=>{ counts[r.category]=(counts[r.category]||0)+1; });
+  $('triageTotal').textContent=triagePreview?rows.length:'—';
+  $('triageSocial').textContent=triagePreview?counts.social:'—';
+  $('triageOther').textContent=triagePreview?counts.other:'—';
+  $('triageInbox').textContent=triagePreview?counts.inbox:'—';
+  const filter=$('triageFilter').value, q=$('triageSearch').value.trim().toLowerCase();
+  const matching=rows.filter(r=>(filter==='all' || (filter==='suggested' ? r.category!=='inbox' : r.category===filter))
+    && (!q || (r.sender+' '+r.subject).toLowerCase().includes(q)));
+  const shown=matching.slice(0,100);
+  $('triageShown').textContent=triagePreview ? 'Showing '+shown.length+' of '+matching.length+' matching messages. Scan again after moves.' : '';
+  $('triageRows').innerHTML=shown.map(r=>'<tr class="border-b border-line/70" data-uid="'+escapeHtml(r.uid)+'">'
+    +'<td class="py-3 pr-3 min-w-[230px]"><div class="text-cream font-medium">'+escapeHtml(r.subject||'(no subject)')+'</div><div class="text-muted text-xs mt-1">'+escapeHtml(r.sender)+'</div></td>'
+    +'<td class="py-3 pr-3 text-muted text-xs whitespace-nowrap">'+escapeHtml(r.date||'Unknown')+'</td>'
+    +'<td class="py-3 pr-3 min-w-[130px]"><span class="text-cream">'+escapeHtml(r.category==='inbox'?'Inbox':r.category==='social'?'Social':'Other')+'</span><div class="text-muted text-xs">'+escapeHtml(r.reason)+'</div></td>'
+    +'<td class="py-3 min-w-[185px]"><select class="field text-xs triageDest"><option value="">Choose folder</option><option value="social" '+(r.category==='social'?'selected':'')+'>Social</option><option value="other" '+(r.category==='other'?'selected':'')+'>Other</option></select>'
+    +'<label class="flex items-center gap-2 text-xs text-muted mt-2"><input class="triageTrain" type="checkbox"> Suggest on future scans</label>'
+    +'<div class="flex gap-3 mt-2"><button class="triageMove text-brand-light text-xs hover:underline" type="button">Move message</button><button class="triageKeep text-muted text-xs hover:text-cream" type="button">Keep sender</button></div></td></tr>').join('');
+  $('triageRows').querySelectorAll('tr[data-uid]').forEach(tr=>{
+    const row=shown.find(r=>r.uid===tr.dataset.uid);
+    tr.querySelector('.triageMove').onclick=()=>moveTriageRow(row,tr);
+    tr.querySelector('.triageKeep').onclick=()=>keepTriageSender(row);
+  });
+}
+async function loadTriage(){
+  if(!SID){ $('triageStatus').textContent='Connect in Cleanup, then scan the inbox.'; return; }
+  const button=$('triageScan'); button.disabled=true;
+  $('triageStatus').textContent='Reading inbox headers…';
+  try{
+    triagePreview=await api('/api/triage/preview',{sid:SID});
+    $('triageStatus').textContent='Preview ready. Messages stay in INBOX until you move them.';
+    renderTriage(); await loadTriageRules();
+  }catch(e){ $('triageStatus').textContent='Scan failed: '+e.message; toastErr(e.message); }
+  finally{ button.disabled=false; }
+}
+async function loadTriageRules(){
+  if(!SID) return;
+  try{
+    const d=await api('/api/triage/rules/'+encodeURIComponent(SID),null,'GET');
+    const entries=Object.entries(d.rules||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    $('triageRules').innerHTML=entries.length?entries.map(([sender,category])=>'<div class="flex items-center justify-between gap-3 border-b border-line py-2"><span class="break-all text-cream">'+escapeHtml(sender)+' <small class="text-muted">→ '+escapeHtml(category)+'</small></span><button class="triageForget text-danger text-xs hover:underline" type="button">Forget</button></div>').join(''):'No sender rules yet.';
+    $('triageRules').querySelectorAll('.triageForget').forEach((button,i)=>{ button.onclick=async()=>{
+      try{ await api('/api/triage/forget',{sid:SID,sender:entries[i][0]}); await loadTriageRules(); }
+      catch(e){ toastErr(e.message); }
+    }; });
+  }catch(e){ $('triageRules').textContent='Could not load sender rules: '+e.message; }
+}
+async function moveTriageRow(row,tr){
+  const category=tr.querySelector('.triageDest').value;
+  if(!category){ toastErr('Choose Social or Other first.'); return; }
+  const folder=category==='social'?'INBOX.Social':'INBOX.Other';
+  if(!(await confirmDialog({title:'Move this message?',message:'Move only “'+row.subject+'” from '+row.sender+' to '+folder+'?',okText:'Move to '+folder}))) return;
+  try{
+    const train=tr.querySelector('.triageTrain').checked;
+    await api('/api/triage/move',{sid:SID,uid:row.uid,uidvalidity:triagePreview.uidvalidity,
+      sender:row.sender,subject:row.subject,date:row.date,category,train});
+    toast('Moved to '+folder+'.','border-ok/50 bg-ok/15 text-ok');
+    await loadTriage();
+  }catch(e){ toastErr(e.message); }
+}
+async function keepTriageSender(row){
+  if(!(await confirmDialog({title:'Keep this sender?',message:'Keep future mail from '+row.sender+' in INBOX? This does not move any current message.',okText:'Keep sender'}))) return;
+  try{ await api('/api/triage/train',{sid:SID,sender:row.sender,category:'inbox'});
+    await loadTriageRules(); await loadTriage(); }
+  catch(e){ toastErr(e.message); }
+}
+$('triageScan').onclick=loadTriage;
+$('triageFilter').onchange=renderTriage;
+$('triageSearch').oninput=renderTriage;
 
 /* ---------- LLM model configs (LLM tab) ---------- */
 let LLM_MODELS=[];

@@ -277,6 +277,21 @@ def all_addresses(account: str) -> list:
     return [r["address"] for r in rows]
 
 
+def confirmed_addresses(account: str) -> list[str]:
+    """Only senders with an affirmative model verdict may skip re-evaluation."""
+    account = (account or "").strip().lower()
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            "SELECT address FROM spam WHERE account=? AND verdict_delete=1"
+            " AND (verdict_reason IS NULL OR verdict_reason != "
+            " 'already in saved spam list (LLM skipped)')"
+            " ORDER BY score DESC", (account,)).fetchall()
+    finally:
+        conn.close()
+    return [r["address"] for r in rows]
+
+
 def count(account: str) -> int:
     """How many spam addresses are saved for an account."""
     account = (account or "").strip().lower()

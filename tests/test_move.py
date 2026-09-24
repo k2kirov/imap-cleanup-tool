@@ -344,6 +344,15 @@ class CliArgsTests(unittest.TestCase):
         self.assertEqual(args.ai_threshold, 7.0)
         self.assertEqual(args.ai_sample, 8)
 
+    def test_ai_scan_all_and_no_rules_flags(self):
+        args = cli.parse_args(["--ai-scan-all", "--no-rules"])
+        self.assertTrue(args.ai_scan_all)
+        self.assertTrue(args.no_rule)
+        self.assertIsNone(args.rule)
+
+        args2 = cli.parse_args(["--no-ai-scan-all"])
+        self.assertFalse(args2.ai_scan_all)
+
 
 if __name__ == "__main__":
     unittest.main()

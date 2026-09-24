@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from . import (__version__, ai, core, llm, notifications, oauth, profiles,
-               scheduler, spamstore)
+               scheduler, spamstore, triage)
 from .rules import RuleError, compile_search, node_from_dict
 from .targets import parse_targets_text
 
@@ -176,6 +176,11 @@ def _folder_dicts(conn) -> list[dict]:
 FIELD_OPERATORS = {
     "sender": [["contains", "contains"], ["is exactly", "is"]],
     "subject": [["contains", "contains"], ["is exactly", "is"]],
+    "body": [["contains", "contains"], ["is exactly", "is"]],
+    "text": [["contains", "contains"], ["is exactly", "is"]],
+    "to": [["contains", "contains"], ["is exactly", "is"]],
+    "cc": [["contains", "contains"], ["is exactly", "is"]],
+    "bcc": [["contains", "contains"], ["is exactly", "is"]],
     "date": [["on", "is"], ["on/after", "starts"], ["before", "ends"]],
 }
 
@@ -390,6 +395,21 @@ def create_app():
     class CreateFolderIn(BaseModel):
         sid: str
         name: str
+
+    class TriageMoveIn(BaseModel):
+        sid: str
+        uid: str
+        uidvalidity: str
+        sender: str
+        subject: str
+        date: str
+        category: str
+        train: bool = False
+
+    class TriageRuleIn(BaseModel):
+        sid: str
+        sender: str
+        category: str = "inbox"
 
     class AIReportIn(Match):
         sid: str
@@ -836,6 +856,63 @@ def create_app():
             except (OSError, core.imaplib.IMAP4.error) as exc:
                 raise HTTPException(502, f"IMAP error: {exc}") from exc
         return {"message": message, "deleted": name, "folders": sess.folders}
+
+    @app.post("/api/triage/preview")
+    def triage_preview(body: SidIn) -> dict[str, Any]:
+        """Show header-only Inbox suggestions; never move mail on preview."""
+        sess = _session(body.sid)
+        if sess.run and sess.run.status == "running":
+            raise HTTPException(409, "An operation is running; try again later.")
+        with sess.lock:
+            try:
+                result = triage.preview(sess.conn, sess.user)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            except (OSError, core.imaplib.IMAP4.error) as exc:
+                raise HTTPException(502, f"IMAP error: {exc}") from exc
+        return result
+
+    @app.post("/api/triage/move")
+    def triage_move(body: TriageMoveIn) -> dict[str, Any]:
+        """Move one reviewed message, then optionally learn the sender rule."""
+        sess = _session(body.sid)
+        if sess.run and sess.run.status == "running":
+            raise HTTPException(409, "An operation is running; try again later.")
+        with sess.lock:
+            try:
+                folder = triage.move_checked(
+                    sess.conn, uid=body.uid, uidvalidity=body.uidvalidity,
+                    sender=body.sender, subject=body.subject, date=body.date,
+                    category=body.category)
+                if body.train:
+                    triage.train_sender(sess.user, body.sender, body.category)
+                sess.folders = _folder_dicts(sess.conn)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            except (OSError, core.imaplib.IMAP4.error) as exc:
+                raise HTTPException(502, f"IMAP error: {exc}") from exc
+        return {"moved": 1, "folder": folder, "trained": body.train}
+
+    @app.post("/api/triage/train")
+    def triage_train(body: TriageRuleIn) -> dict[str, Any]:
+        """Keep or sort future messages from a sender by explicit choice."""
+        sess = _session(body.sid)
+        try:
+            triage.train_sender(sess.user, body.sender, body.category)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {"sender": body.sender.lower(), "category": body.category}
+
+    @app.get("/api/triage/rules/{sid}")
+    def triage_rules(sid: str) -> dict[str, Any]:
+        sess = _session(sid)
+        return {"rules": triage.sender_rules(sess.user)}
+
+    @app.post("/api/triage/forget")
+    def triage_forget(body: TriageRuleIn) -> dict[str, Any]:
+        sess = _session(body.sid)
+        triage.forget_sender(sess.user, body.sender)
+        return {"sender": body.sender.lower(), "forgotten": True}
 
     @app.post("/api/disconnect/{sid}")
     def disconnect(sid: str) -> dict[str, Any]:
@@ -1321,7 +1398,7 @@ def create_app():
             recorder = None
             if model_cfg.get("track_costs"):
                 recorder = lambda p, c, co: llm.log_cost(body.model, p, c, co)
-            known_spam = (set(spamstore.all_addresses(sess.user))
+            known_spam = (set(spamstore.confirmed_addresses(sess.user))
                           if getattr(body, "check_spam", True) else None)
             try:
                 ev = ai.evaluate(report, model_cfg, should_stop=rs.stop.is_set,
