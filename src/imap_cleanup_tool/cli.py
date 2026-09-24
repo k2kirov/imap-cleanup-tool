@@ -31,9 +31,12 @@ from __future__ import annotations
 import argparse
 import getpass
 import importlib.util
+import json
 import logging
 import os
+import re
 import sys
+from pathlib import Path
 
 from . import core
 from . import __version__
@@ -43,6 +46,8 @@ from .targets import load_targets
 
 
 def _add_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--config", metavar="FILE",
+                        help="Path to a JSON configuration file with rules and options.")
     parser.add_argument("--host", default=os.getenv("IMAP_HOST"))
     parser.add_argument("--port", type=int,
                         default=int(os.getenv("IMAP_PORT", "993")))
@@ -59,17 +64,25 @@ def _add_arguments(parser: argparse.ArgumentParser) -> None:
                         default="search")
     parser.add_argument("--include-subdomains", action="store_true")
     parser.add_argument("--batch-size", type=int, default=core.UID_CHUNK_SIZE)
-    parser.add_argument("--local-cache", action="store_true",
+    parser.add_argument("--local-cache", action="store_true", default=None,
                         help="Cache message headers locally so repeat AI reports "
                              "are faster (also enabled by a profile's setting).")
+    parser.add_argument("--no-cache", action="store_false", dest="local_cache",
+                        help="Disable local header cache (overrides config).")
+    parser.add_argument("--clear-cache", action="store_true",
+                        help="Clear the local message header cache before scanning.")
+    parser.add_argument("--status", action="store_true",
+                        help="Show total and unread message counts for all folders.")
     parser.add_argument("--list-folders", action="store_true")
     parser.add_argument("--list-senders", action="store_true")
     parser.add_argument("--save-senders", metavar="CSV")
-    parser.add_argument("--empty-folder", action="store_true")
-    parser.add_argument("--gmail-trash", action="store_true")
-    parser.add_argument("--move", action="store_true",
+    parser.add_argument("--empty-folder", action="store_true", default=None)
+    parser.add_argument("--gmail-trash", action="store_true", default=None)
+    parser.add_argument("--move", action="store_true", default=None,
                         help="Move matching messages to --dest-folder instead "
                              "of deleting them.")
+    parser.add_argument("--no-move", action="store_false", dest="move",
+                        help="Delete matching messages instead of moving them (overrides config).")
     parser.add_argument("--dest-folder", metavar="NAME",
                         help="Destination folder/label for --move.")
     parser.add_argument("--create-folder", metavar="NAME",
@@ -118,10 +131,30 @@ def _add_arguments(parser: argparse.ArgumentParser) -> None:
                         help="Do NOT skip already-saved spam senders from the LLM "
                              "(by default they are accepted as spam without asking "
                              "the model again, to save tokens).")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--expunge", action="store_true")
-    parser.add_argument("--yes", action="store_true")
-    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--ai-scan-all", action="store_true", default=None,
+                        help="Scan the entire folder with AI regardless of "
+                             "--rule/--targets (overrides config).")
+    parser.add_argument("--no-ai-scan-all", action="store_false", dest="ai_scan_all",
+                        help="Scope AI scan to --rule/--targets only (overrides config).")
+    parser.add_argument("--ai-review-obsolete", action="store_true", default=None,
+                        help="Add clear low-value subject hints to the AI review "
+                             "queue; requires --ai-report-only.")
+    parser.add_argument("--no-ai-review-obsolete", action="store_false",
+                        dest="ai_review_obsolete",
+                        help="Disable obsolete-subject hints from config.")
+    parser.add_argument("--ai-obsolete-example", metavar="TEXT", action="append",
+                        default=[], help="User-approved low-value message type "
+                                         "for the report-only model review (repeatable).")
+    parser.add_argument("--no-rule", "--no-rules", action="store_true",
+                        help="Ignore any rules from config file or profile.")
+    parser.add_argument("--dry-run", action="store_true", default=None)
+    parser.add_argument("--no-dry-run", action="store_false", dest="dry_run",
+                        help="Execute changes without dry-run (overrides config).")
+    parser.add_argument("--expunge", action="store_true", default=None)
+    parser.add_argument("--yes", action="store_true", default=None)
+    parser.add_argument("--no-yes", action="store_false", dest="yes",
+                        help="Ask for interactive confirmation (overrides config).")
+    parser.add_argument("--verbose", "-v", action="store_true", default=None)
     parser.add_argument("--run-job", metavar="NAME",
                         help="Run a saved scheduled job by name (used by the "
                              "OS scheduler / cron).")
@@ -143,6 +176,148 @@ def _add_arguments(parser: argparse.ArgumentParser) -> None:
                              "one. Used by scheduled jobs.")
 
 
+def _apply_config_file(args: argparse.Namespace, config_path: str | Path,
+                       explicit: set[str] | None = None) -> None:
+    """Populate default arguments from a JSON configuration file."""
+    explicit = explicit or set()
+    path = Path(config_path)
+    if not path.is_file():
+        raise SystemExit(f"[ERROR] Config file not found: {config_path}")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SystemExit(f"[ERROR] Invalid config file {config_path}: {exc}")
+
+    if not isinstance(data, dict):
+        raise SystemExit(f"[ERROR] Config file {config_path} must be a JSON object.")
+
+    # Connection options
+    if not getattr(args, "host", None) and data.get("host"):
+        args.host = str(data["host"]).strip()
+    if data.get("port") and "port" not in explicit and args.port == 993:
+        args.port = int(data["port"])
+    if not getattr(args, "user", None) and data.get("user"):
+        args.user = str(data["user"]).strip()
+    if not getattr(args, "password", None) and data.get("password"):
+        args.password = str(data["password"])
+    if data.get("timeout") and "timeout" not in explicit and args.timeout == 120:
+        args.timeout = int(data["timeout"])
+
+    if not getattr(args, "profile", None) and data.get("profile"):
+        args.profile = str(data["profile"]).strip()
+
+    # Folder targeting
+    if not getattr(args, "folder", None):
+        if "folders" in data and data["folders"]:
+            f = data["folders"]
+            args.folder = [str(x) for x in f] if isinstance(f, list) else [str(f)]
+        elif "folder" in data and data["folder"]:
+            f = data["folder"]
+            args.folder = [str(x) for x in f] if isinstance(f, list) else [str(f)]
+
+    # Action options
+    if getattr(args, "move", None) is None and "move" in data:
+        args.move = bool(data["move"])
+    if not getattr(args, "dest_folder", None) and data.get("dest_folder"):
+        args.dest_folder = str(data["dest_folder"]).strip()
+    if getattr(args, "gmail_trash", None) is None and "gmail_trash" in data:
+        args.gmail_trash = bool(data["gmail_trash"])
+    if getattr(args, "empty_folder", None) is None and "empty_folder" in data:
+        args.empty_folder = bool(data["empty_folder"])
+    if getattr(args, "expunge", None) is None and "expunge" in data:
+        args.expunge = bool(data["expunge"])
+
+    # Filtering options (rules & targets)
+    if not getattr(args, "no_rule", False) and not getattr(args, "rule", None):
+        rules = data.get("rules")
+        if isinstance(rules, list) and rules:
+            formatted = []
+            for r in rules:
+                s = str(r).strip()
+                if not s:
+                    continue
+                if not (s.startswith("(") and s.endswith(")")):
+                    formatted.append(f"({s})")
+                else:
+                    formatted.append(s)
+            if formatted:
+                args.rule = " OR ".join(formatted)
+        elif data.get("rule"):
+            args.rule = str(data["rule"]).strip()
+
+    if not getattr(args, "targets", None) and data.get("targets"):
+        targets = data["targets"]
+        if isinstance(targets, list):
+            from .scheduler import config_dir
+            tpath = config_dir() / "targets_from_config.txt"
+            tpath.write_text("\n".join(str(t).strip() for t in targets if str(t).strip()),
+                             encoding="utf-8")
+            args.targets = str(tpath)
+        else:
+            args.targets = str(targets).strip()
+
+    if not getattr(args, "include_subdomains", False) and data.get("include_subdomains"):
+        args.include_subdomains = bool(data["include_subdomains"])
+    if data.get("scan_mode") and "scan_mode" not in explicit and args.scan_mode == "search":
+        args.scan_mode = str(data["scan_mode"]).strip().lower()
+
+    # AI Cleanup options
+    if not getattr(args, "ai_cleanup", False) and data.get("ai_cleanup"):
+        args.ai_cleanup = bool(data["ai_cleanup"])
+    if not getattr(args, "ai_model", None) and data.get("ai_model"):
+        args.ai_model = str(data["ai_model"]).strip()
+    if (data.get("ai_threshold") is not None and "ai_threshold" not in explicit
+            and args.ai_threshold == 6.0):
+        args.ai_threshold = float(data["ai_threshold"])
+    if (data.get("ai_sample") is not None and "ai_sample" not in explicit
+            and args.ai_sample == 5):
+        args.ai_sample = int(data["ai_sample"])
+    if "ai_exclude" in data and not args.ai_exclude:
+        ex = data["ai_exclude"]
+        args.ai_exclude = [str(x).strip() for x in ex] if isinstance(ex, list) else [str(ex).strip()]
+    if not getattr(args, "ai_include_self", False) and data.get("ai_include_self"):
+        args.ai_include_self = bool(data["ai_include_self"])
+    if "ai_weights" in data and not args.ai_weight:
+        weights = data["ai_weights"]
+        if isinstance(weights, dict):
+            args.ai_weight = [f"{k}={v}" for k, v in weights.items()]
+        elif isinstance(weights, list):
+            args.ai_weight = [str(w) for w in weights]
+    if not getattr(args, "ai_report_only", False) and data.get("ai_report_only"):
+        args.ai_report_only = bool(data["ai_report_only"])
+    if not getattr(args, "ai_report_csv", None) and data.get("ai_report_csv"):
+        args.ai_report_csv = str(data["ai_report_csv"]).strip()
+    if not getattr(args, "ai_flag_spam", False) and data.get("ai_flag_spam"):
+        args.ai_flag_spam = bool(data["ai_flag_spam"])
+    if data.get("ai_no_check_spam") and getattr(args, "ai_check_spam", True):
+        args.ai_check_spam = False
+    if getattr(args, "ai_scan_all", None) is None and "ai_scan_all" in data:
+        args.ai_scan_all = bool(data["ai_scan_all"])
+    if getattr(args, "ai_review_obsolete", None) is None and "ai_review_obsolete" in data:
+        args.ai_review_obsolete = bool(data["ai_review_obsolete"])
+    if "ai_obsolete_examples" in data and not args.ai_obsolete_example:
+        examples = data["ai_obsolete_examples"]
+        if isinstance(examples, list):
+            args.ai_obsolete_example = [str(x).strip() for x in examples if str(x).strip()]
+
+    # Notifications & Performance
+    if not getattr(args, "notify_profile", None) and data.get("notify_profile"):
+        args.notify_profile = str(data["notify_profile"]).strip()
+    if getattr(args, "local_cache", None) is None and "local_cache" in data:
+        args.local_cache = bool(data["local_cache"])
+    if not getattr(args, "clear_cache", False) and data.get("clear_cache"):
+        args.clear_cache = bool(data["clear_cache"])
+    if (data.get("batch_size") and "batch_size" not in explicit
+            and args.batch_size == core.UID_CHUNK_SIZE):
+        args.batch_size = int(data["batch_size"])
+    if getattr(args, "dry_run", None) is None and "dry_run" in data:
+        args.dry_run = bool(data["dry_run"])
+    if getattr(args, "yes", None) is None and "yes" in data:
+        args.yes = bool(data["yes"])
+    if getattr(args, "verbose", None) is None and "verbose" in data:
+        args.verbose = bool(data["verbose"])
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -154,7 +329,38 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Show the installed version and exit. "
              "Update with: pip install -U imap-cleanup-tool")
     _add_arguments(parser)
-    return parser.parse_args(argv)
+    argv = sys.argv[1:] if argv is None else argv
+    args = parser.parse_args(argv)
+    explicit = {parser._option_string_actions[option].dest
+                for token in argv
+                if (option := token.split("=", 1)[0]) in parser._option_string_actions}
+    if args.config:
+        _apply_config_file(args, args.config, explicit)
+    elif Path("config.json").is_file():
+        _apply_config_file(args, "config.json", explicit)
+    elif Path("imap-cleanup.json").is_file():
+        _apply_config_file(args, "imap-cleanup.json", explicit)
+
+    if args.profile and not args.config:
+        from .scheduler import config_dir
+        for cand in [config_dir() / "profiles" / f"{args.profile}.json",
+                     Path(f"profiles/{args.profile}.json"),
+                     Path(f"{args.profile}.json")]:
+            if cand.is_file():
+                _apply_config_file(args, cand, explicit)
+                break
+
+    # Resolve any remaining None boolean defaults to False
+    for flag in ("move", "dry_run", "yes", "verbose", "ai_cleanup",
+                 "ai_report_only", "ai_flag_spam", "expunge", "gmail_trash", "empty_folder",
+                 "ai_scan_all", "ai_review_obsolete"):
+        if getattr(args, flag, None) is None:
+            setattr(args, flag, False)
+
+    if getattr(args, "no_rule", False):
+        args.rule = None
+
+    return args
 
 
 def _resolve_credentials(args: argparse.Namespace) -> tuple[str, str, str]:
@@ -404,10 +610,13 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
     addresses: set[str] = set()
     domains: set[str] = set()
     exact_domains: set[str] = set()
-    if args.rule:
-        search_argument = compile_search(parse_rule_expression(args.rule))
-    elif args.targets:
-        addresses, domains, exact_domains = load_targets(args.targets)
+    if not getattr(args, "ai_scan_all", False):
+        if args.rule:
+            search_argument = compile_search(parse_rule_expression(args.rule))
+        elif args.targets:
+            addresses, domains, exact_domains = load_targets(args.targets)
+    else:
+        core.logger.info("AI scan scope: ALL messages in folder (--ai-scan-all).")
     cache = None
     if getattr(args, "local_cache", False):
         try:
@@ -436,6 +645,7 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
             return 5
     report = core.build_ai_report(conn, folders, threshold=args.ai_threshold,
                                   sample_size=args.ai_sample, exclude=exclude,
+                                  review_obsolete=args.ai_review_obsolete,
                                   weights=weights,
                                   addresses=addresses, domains=domains,
                                   exact_domains=exact_domains,
@@ -452,10 +662,15 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
         known_spam = None
         if getattr(args, "ai_check_spam", True):
             from . import spamstore
-            known_spam = set(spamstore.all_addresses(user))
+            known_spam = set(spamstore.confirmed_addresses(user))
         try:
             ev = ai.evaluate(report, cfg, record_cost=recorder,
-                             known_spam=known_spam)
+                             known_spam=known_spam,
+                             batch_size=1 if args.ai_review_obsolete else ai.LLM_BATCH_SIZE,
+                             max_retries=1 if args.ai_review_obsolete else 3,
+                             allow_partial=args.ai_review_obsolete,
+                             user_examples=(args.ai_obsolete_example
+                                            if args.ai_review_obsolete else None))
         except RuntimeError as exc:
             print(f"[ERROR] {exc}")
             return 5
@@ -481,9 +696,10 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
             return 2
 
     if args.ai_report_only or ev is None:
-        # Report-only: skip deletion, save the report + its spam addresses, and (if
-        # email notifications are on) send the report as an attachment.
-        _record_spam_cli(user, report, "report")
+        # The obsolete queue contains review candidates, including model keeps.
+        # Do not add them to the actionable Spam addresses tab.
+        if not args.ai_review_obsolete:
+            _record_spam_cli(user, report, "report")
         from .scheduler import save_ai_report
         try:
             saved = save_ai_report(csv_text, user)   # tag the file with the account
@@ -493,16 +709,16 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
             saved = None
         account = getattr(args, "user", None) or getattr(args, "host", "")
         flagged = report.get("flagged_count", 0)
-        deletable = report.get("flagged_messages", 0)
+        candidates = report.get("flagged_messages", 0)
         subject = (f"[imap-cleanup-tool] AI report on {account}: "
                    f"{flagged} sender(s) flagged")
         body = (f"AI Cleanup report (report only - nothing was deleted) for "
                 f"account: {account}\nFolders: {', '.join(folders)}\n"
                 f"Flagged senders: {flagged}\n"
-                f"Emails potentially deletable: {deletable}\n\n"
+                f"Messages selected for AI review: {candidates}\n\n"
                 f"The full report is attached as a CSV.\n\n- imap-cleanup-tool")
         fname = (saved.name if saved else "ai_report.csv")
-        _notify_cli(args, folders, deletable, gmail=False, kind="AI report",
+        _notify_cli(args, folders, candidates, gmail=False, kind="AI report",
                     subject=subject, body=body,
                     attachments=[(fname, csv_text)])
         core.logger.info("Report only - nothing deleted.")
@@ -533,10 +749,17 @@ def _run_ai(conn, args: argparse.Namespace, folders: list[str],
         total += core.process_folder(
             conn, folder, addresses=confirmed, dry_run=args.dry_run,
             expunge=args.expunge, gmail_trash=gmail,
+            move=args.move, dest_folder=args.dest_folder,
             batch_size=args.batch_size, scan_mode="search")
-    verb = "would be deleted" if args.dry_run else "deleted"
+    if args.move:
+        verb = (f"would be moved to {args.dest_folder!r}" if args.dry_run
+                else f"moved to {args.dest_folder!r}")
+    else:
+        verb = "would be deleted" if args.dry_run else "deleted"
     core.logger.info("Done. %d message(s) %s.", total, verb)
-    _notify_cli(args, folders, total, gmail=gmail, kind="AI Cleanup")
+    kind = "AI Move" if args.move else "AI Cleanup"
+    _notify_cli(args, folders, total, gmail=gmail and not args.move, kind=kind,
+                dest=(args.dest_folder or "") if args.move else "")
     return 0
 
 
@@ -578,6 +801,11 @@ def main(argv: list[str] | None = None) -> int:
     # pylint: disable=too-many-return-statements
     args = parse_args(argv)
 
+    if args.ai_review_obsolete and (not args.ai_cleanup or not args.ai_report_only):
+        print("[ERROR] --ai-review-obsolete requires --ai-cleanup "
+              "--ai-report-only; review the report before any mail action.")
+        return 2
+
     # Gate AI Cleanup behind the optional [ai] extra (verify what's installed),
     # mirroring the web UI which disables the whole AI Cleanup option when the
     # extra is missing. Checked up front so it fails fast, before connecting.
@@ -609,11 +837,14 @@ def main(argv: list[str] | None = None) -> int:
         args.host, args.port = prof["host"], prof["port"]
         args.user, args.password = prof["user"], prof["password"]
         args.timeout = prof["timeout"]
-        # A profile can carry the "enable local cache" setting; the flag can also
-        # force it on for an ad-hoc connection.
-        args.local_cache = args.local_cache or prof.get("local_cache", False)
+        # A profile supplies the cache default; a CLI/config value wins.
+        if args.local_cache is None:
+            args.local_cache = prof.get("local_cache", False)
         if prof.get("auth_method") == "oauth":
             oauth_prof = prof
+
+    if args.local_cache is None:
+        args.local_cache = False
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -658,6 +889,10 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     folders = args.folder or ["INBOX"]
+    if getattr(args, "clear_cache", False):
+        from .headercache import HeaderCache
+        HeaderCache().clear(user)
+        core.logger.info("Cleared local header cache for %s.", user)
     try:
         if args.create_folder:
             print(core.create_folder(conn, args.create_folder))
@@ -668,6 +903,25 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError as exc:
                 print(f"[ERROR] {exc}")
                 return 2
+            return 0
+        if args.status:
+            print(f"=== Mailbox Status ({user}) ===")
+            for name in core.list_folders(conn):
+                try:
+                    res, stat = conn.status(f'"{name}"', "(MESSAGES UNSEEN RECENT)")
+                    if res == "OK" and stat:
+                        s_str = stat[0].decode(errors="replace")
+                        m_m = re.search(r"MESSAGES\s+(\d+)", s_str)
+                        u_m = re.search(r"UNSEEN\s+(\d+)", s_str)
+                        r_m = re.search(r"RECENT\s+(\d+)", s_str)
+                        msgs = m_m.group(1) if m_m else "?"
+                        unseen = u_m.group(1) if u_m else "?"
+                        recent = r_m.group(1) if r_m else "?"
+                        print(f"  {name:<22} Total: {msgs:>5} | Unread: {unseen:>5} | Recent: {recent:>3}")
+                    else:
+                        print(f"  {name}")
+                except Exception:
+                    print(f"  {name}")
             return 0
         if args.list_folders:
             for name in core.list_folders(conn):
@@ -681,8 +935,12 @@ def main(argv: list[str] | None = None) -> int:
                                   cache=cache)
             return 0
         if args.ai_cleanup:
+            if args.move and not (args.dest_folder and args.dest_folder.strip()):
+                print("[ERROR] --move requires --dest-folder NAME.")
+                return 2
             if (not args.ai_report_only and not args.dry_run and not args.yes
-                    and not _confirm(folders, False, False, False)):
+                    and not _confirm(folders, False, False, False,
+                                     move_to=args.dest_folder if args.move else None)):
                 print("Aborted.")
                 return 0
             return _run_ai(conn, args, folders, user)

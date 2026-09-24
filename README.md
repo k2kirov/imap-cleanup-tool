@@ -421,6 +421,56 @@ imap-cleanup-tool --host HOST --user USER \
 > If you run an `--ai-cleanup` command without the `[ai]` extra installed, the CLI
 > stops with a clear message telling you to `pip install "imap-cleanup-tool[ai]"`.
 
+### Inbox sort
+
+The **Inbox sort** tab scans `INBOX` headers and suggests **Social**, **Other**,
+or **Inbox** for each message. It does not read bodies. A suggestion does not move
+mail. Use **Move message** to move one checked message to `INBOX.Social` or
+`INBOX.Other`; the app verifies its UID, sender, subject, date, and UIDVALIDITY
+first. This path never uses Trash. Leave a message alone to keep it in INBOX.
+
+**Remember this sender** is checked by default when all scanned mail from that
+sender has the same suggestion. Clear it for a one-time move. A checked move
+saves a per-account **From (address) · Is Equal to · sender** rule for future
+previews. It does not start a background sorter. Use
+**Keep sender** to save an Inbox rule, or **Forget** to remove a rule. Security,
+billing, receipts, delivery, calendar invitations, and other protected subjects
+stay in Inbox even when a sender rule points elsewhere.
+
+This is a local review workflow inspired by [SaneBox's folder sorting](https://www.sanebox.com/faq) and
+training. It is not a SaneBox integration.
+
+Social suggestions use selected domains from the CC0
+[inpector Sieve filters](https://github.com/inpector/sieve-filters) plus the
+existing LinkedIn and Facebook notification domains. The sender's `From`
+domain and an activity match in `Subject` must both agree. The reasons use
+[SpamSieve's message field names](https://c-command.com/spamsieve/help/rule-columns-locations),
+such as **From (address)** and **Subject**. The built-in Social checks now use
+SpamSieve's **Location**, **Match Style**, and **Text to Match** rule shape.
+This app evaluates those checks against IMAP headers. SpamSieve's allowlist and
+blocklist classify mail as good or spam; they cannot choose this app's Social or
+Other review folders. The app does not import, export, or install SpamSieve rules.
+Regex checks use Python syntax, so they are not interchangeable with every
+SpamSieve regex.
+
+The pinned CC0 [inpector rule snapshot](src/imap_cleanup_tool/inpector_rules.json)
+adds header checks for Security, Deliveries, Finances, Fix Costs, Free Time,
+Jobs, Shopping, Tech, Travelling, Monitoring, and Mailinglists. The preview
+shows matching source groups. It also shows separate review hints for the
+source's spam and security header checks: attachment headers, sender domains,
+spam and authentication headers, support display names, shipping subjects, and
+subject patterns. These hints do not change the folder suggestion. Some source
+patterns are broad. A hit is not proof that a message is spam or unsafe.
+
+Security, delivery, finance, fixed-cost, and travel matches stay in Inbox.
+Non-social Free Time and mailing list matches suggest Other. Social still
+needs a social domain and activity subject. Protected subjects always stay in
+Inbox. The Source rule coverage panel lists checks that this header-only scan
+cannot evaluate. These need the SMTP envelope, your private address list, a
+message body, or MIME attachment parts. The app never runs the source's reject,
+discard, mark-read, or file-into actions. A user must select and move each
+message. The app does not create a Junk or Trash suggestion from these hints.
+
 ### Reports tab
 
 Every AI report or run saves a timestamped CSV (**per account**, in `ai_reports/`).
@@ -638,9 +688,11 @@ python -m unittest discover -s tests -v
 | `--ai-include-self` | Include your own mailbox address in the report (by default it is excluded). |
 | `--ai-weight KEY=VALUE` | Override a heuristic weight (repeatable): `list_unsubscribe`, `unread_ratio`, `bulk`, `sender_pattern`, `frequency`. |
 | `--ai-report-only` | Build the report (and LLM verdicts if `--ai-model` is given) but delete nothing; a model is optional. |
+| `--ai-review-obsolete` | Add clear social and marketing hints plus routine service alerts older than 180 days to the AI review queue. Requires `--ai-cleanup --ai-report-only`. No mail action is allowed. |
+| `--ai-obsolete-example TEXT` | Give the report-only model a user-approved low-value example (repeatable). |
 | `--ai-report-csv PATH` | Write the report as CSV (Excel-friendly) to `PATH`. |
 | `--ai-flag-spam` | On delete, first move one message per confirmed sender to Junk/Spam (trains the server), then delete the rest. Needs a Junk/Spam folder. |
-| `--ai-no-check-spam` | Re-evaluate every flagged sender with the LLM. By default, senders already in the saved Spam list are accepted as spam without asking the model (saves tokens). |
+| `--ai-no-check-spam` | Re-evaluate every flagged sender with the LLM. By default, only senders with a saved affirmative model verdict skip re-evaluation. |
 | `--dry-run` | Report only; make no changes. |
 | `--expunge` | Permanently remove after flagging. |
 | `--yes` | Skip the confirmation prompt (for scripts/cron). |

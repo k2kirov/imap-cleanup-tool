@@ -31,6 +31,11 @@ _FIELD_OPS: dict[str, dict[str, str]] = {
     "sender": {"is": "FROM", "contains": "FROM"},
     "subject": {"is": "SUBJECT", "contains": "SUBJECT"},
     "date": {"is": "ON", "starts": "SINCE", "ends": "BEFORE"},
+    "body": {"is": "BODY", "contains": "BODY"},
+    "text": {"is": "TEXT", "contains": "TEXT"},
+    "to": {"is": "TO", "contains": "TO"},
+    "cc": {"is": "CC", "contains": "CC"},
+    "bcc": {"is": "BCC", "contains": "BCC"},
 }
 
 _MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",

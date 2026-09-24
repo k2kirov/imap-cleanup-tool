@@ -15,6 +15,12 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(
             _search("sender contains amazon.com"), 'FROM "amazon.com"')
 
+    def test_body_and_text_condition(self):
+        self.assertEqual(
+            _search("body contains 'password notice'"), 'BODY "password notice"')
+        self.assertEqual(
+            _search("text contains 'mailbox expiry'"), 'TEXT "mailbox expiry"')
+
     def test_or_expression(self):
         self.assertEqual(
             _search("sender contains a OR subject contains b"),

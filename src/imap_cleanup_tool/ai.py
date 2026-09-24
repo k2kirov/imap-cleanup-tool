@@ -33,13 +33,29 @@ _SYSTEM = (
     "reservations, bookings, or calendar invites; medical or health messages "
     "(doctor visits, test results, prescriptions, pharmacies, insurance); travel "
     "(flights, boarding passes, hotels, car rentals); banking, payments, tax, or "
-    "other financial matters; security or account messages (2FA/verification "
-    "codes, password resets, login or security alerts, account changes); "
+    "other financial matters; authentic security or account messages (genuine "
+    "2FA/verification codes, real password resets, official login alerts); "
     "government, legal, or official correspondence; or personal messages from a "
     "real person. If a sender mixes these with marketing, KEEP it.\n"
-    "Only mark as safe to delete the obvious bulk senders the user clearly does "
-    "not read: newsletters, promotions, marketing, sales, and automated social/"
-    "app notifications.\n"
+    "Phishing and fake alerts: Watch out for credential phishing, fake mailbox "
+    "expiration or re-validation notices, fake IT administration alerts, fake quota "
+    "warnings, and spoofed signature requests (e.g. DocuSign scams). These are malicious "
+    "junk and SHOULD be marked safe to delete (delete=true).\n"
+    "Only mark as safe to delete obvious low-value bulk mail: newsletters, "
+    "promotions, marketing, sales, automated social/app notifications, spam, "
+    "and phishing. Old routine service alerts can also be obsolete when their "
+    "sample dates are over 180 days old and the event clearly ended. Keep "
+    "unresolved incidents, outages, support cases, and delivery notices. "
+    "A read message can still be obsolete. A profile-view alert "
+    "may be low-value when the user says so.\n"
+    "Here delete=true applies only to the current matching messages. It does "
+    "not block the sender or future mail.\n"
+    "A heuristic score only selects a sender for review. It does not prove that "
+    "the messages are junk. A LinkedIn profile-view alert or a past promotional "
+    "webinar may be obsolete; a LinkedIn sign-in code or order is not. Judge each "
+    "sender from its sample subjects, not from its domain or unread count alone. "
+    "If samples show both low-value and protected mail, or do not show enough "
+    "evidence for all messages from that sender, KEEP it.\n"
     "Respond with STRICT JSON only - no prose, no code fences - shaped exactly "
     'like: {"verdicts":[{"sender":"a@b.com","delete":true,"reason":"...",'
     '"confidence":0.0}]}')
@@ -151,6 +167,7 @@ def _sender_payload(s: dict) -> dict:
         "unread_ratio": s["unread_ratio"], "per_week": s["per_week"],
         "list_unsubscribe": s["list_unsubscribe"],
         "heuristic_score": s["score"],
+        "candidate_reason": s.get("candidate_reason", "score"),
         "sample_subjects": [x["subject"] for x in s.get("samples", [])],
     }
 
@@ -160,10 +177,19 @@ def _user_message(senders: list[dict]) -> str:
     return "Senders to evaluate:\n" + json.dumps(items, ensure_ascii=False)
 
 
-def build_messages(report: dict) -> tuple[str, str]:
+def _system_for(user_examples: list[str] | None = None) -> str:
+    examples = [s.strip() for s in (user_examples or []) if s.strip()]
+    if not examples:
+        return _SYSTEM
+    return (_SYSTEM + "\nUser-approved low-value examples for this report: "
+            + json.dumps(examples, ensure_ascii=False))
+
+
+def build_messages(report: dict,
+                   user_examples: list[str] | None = None) -> tuple[str, str]:
     """Return (system, user) messages for the flagged senders in ``report``."""
     flagged = [s for s in report.get("senders", []) if s.get("flagged")]
-    return _SYSTEM, _user_message(flagged)
+    return _system_for(user_examples), _user_message(flagged)
 
 
 def _extract_json(content: str):
@@ -218,15 +244,18 @@ def _call_once(litellm, kwargs: dict):
     try:
         return litellm.completion(response_format={"type": "json_object"},
                                   **kwargs)
-    except Exception:  # pragma: no cover - model may not support the param
+    except Exception as exc:  # pragma: no cover - model may not support the param
+        error = str(exc).lower()
+        if "response_format" not in error and "json_object" not in error:
+            raise
         return litellm.completion(**kwargs)
 
 
 def _evaluate_batch(litellm, base_kwargs: dict, senders: list[dict],
-                    max_retries: int) -> tuple[dict, int, int]:
+                    max_retries: int, system_prompt: str) -> tuple[dict, int, int]:
     """Evaluate one batch of senders; returns (verdicts, prompt_tok, compl_tok)."""
     kwargs = dict(base_kwargs)
-    kwargs["messages"] = [{"role": "system", "content": _SYSTEM},
+    kwargs["messages"] = [{"role": "system", "content": system_prompt},
                           {"role": "user", "content": _user_message(senders)}]
     pt = ct = 0
     last_err = ""
@@ -254,7 +283,9 @@ def _batch_cost(model_cfg: dict, pt: int, ct: int):
 def evaluate(report: dict, model_cfg: dict, max_retries: int = 3,
              batch_size: int = LLM_BATCH_SIZE, should_stop=None,
              timeout: int = LLM_TIMEOUT, record_cost=None,
-             known_spam: set | None = None) -> dict:
+             known_spam: set | None = None,
+             allow_partial: bool = False,
+             user_examples: list[str] | None = None) -> dict:
     """Ask the LLM which flagged senders to delete, in batches.
 
     Flagged senders are sent ``batch_size`` at a time (each call retried up to
@@ -301,6 +332,7 @@ def evaluate(report: dict, model_cfg: dict, max_retries: int = 3,
             logger.info("Skipping %d flagged sender(s) already saved as spam "
                         "(not sent to the LLM - saves tokens).", skipped)
     flagged = [s for s in flagged_all if s["sender"].lower() not in known]
+    system_prompt = _system_for(user_examples)
     total = len(flagged)
     pt = ct = 0
     try:
@@ -308,8 +340,27 @@ def evaluate(report: dict, model_cfg: dict, max_retries: int = 3,
             if should_stop is not None and should_stop():
                 raise StopRequested
             batch = flagged[start:start + batch_size]
-            v, bpt, bct = _evaluate_batch(litellm, base_kwargs, batch, max_retries)
+            try:
+                v, bpt, bct = _evaluate_batch(litellm, base_kwargs,
+                                             batch, max_retries, system_prompt)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                if not allow_partial:
+                    raise
+                logger.warning("Model review failed for %d sender(s): %s",
+                               len(batch), exc)
+                for sender in batch:
+                    verdicts[sender["sender"].lower()] = {
+                        "delete": False,
+                        "reason": "model error; manual review required",
+                        "confidence": 0.0}
+                continue
             verdicts.update(v)
+            if allow_partial:
+                for sender in batch:
+                    verdicts.setdefault(sender["sender"].lower(), {
+                        "delete": False,
+                        "reason": "model returned no verdict; manual review required",
+                        "confidence": 0.0})
             pt += bpt
             ct += bct
             if record_cost is not None and (bpt or bct):

@@ -24,12 +24,11 @@ import re
 
 from .rules import Condition, Group, RuleError
 
-_FIELDS = {"sender", "subject", "date"}
+_FIELDS = {"sender", "subject", "date", "body", "text", "to", "cc", "bcc"}
 _OPS = {"is", "contains", "starts", "ends"}
-# Match: a parenthesis, OR a quoted string, OR a run of chars that are not
-# whitespace or parentheses. This keeps "(" and ")" as standalone tokens even
-# when written next to a value, e.g. "info@y.com)".
-_TOKEN = re.compile(r'[()]|"[^"]*"|[^\s()]+')
+# Match: a parenthesis, OR a quoted string (single or double), OR a run of chars
+# that are not whitespace or parentheses.
+_TOKEN = re.compile(r"""[()]|"[^"]*"|'[^']*'|[^\s()]+""")
 
 
 def _tokenize(text: str) -> list[str]:
@@ -98,7 +97,8 @@ class _Parser:
         if operator.lower() not in _OPS:
             raise RuleError(f"Unknown operator: {operator!r}")
         value = self._require("value")
-        if value.startswith('"') and value.endswith('"'):
+        if (value.startswith('"') and value.endswith('"')) or (
+                value.startswith("'") and value.endswith("'")):
             value = value[1:-1]
         return Condition(field.lower(), operator.lower(), value)
 

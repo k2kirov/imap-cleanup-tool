@@ -17,6 +17,18 @@ class ConditionTests(unittest.TestCase):
         cond = Condition("subject", "is", "Invoice")
         self.assertEqual(cond.to_imap(), ["SUBJECT", '"Invoice"'])
 
+    def test_body_contains(self):
+        cond = Condition("body", "contains", "password reset")
+        self.assertEqual(cond.to_imap(), ["BODY", '"password reset"'])
+
+    def test_text_contains(self):
+        cond = Condition("text", "contains", "urgent notice")
+        self.assertEqual(cond.to_imap(), ["TEXT", '"urgent notice"'])
+
+    def test_to_contains(self):
+        cond = Condition("to", "contains", "support@forkpoint.com")
+        self.assertEqual(cond.to_imap(), ["TO", '"support@forkpoint.com"'])
+
     def test_date_operators_and_format(self):
         self.assertEqual(
             Condition("date", "starts", "2025-01-01").to_imap(),

@@ -1,0 +1,66 @@
+{
+  "profile": "forkpoint",
+  "folders": ["INBOX"],
+
+  "move": true,
+  "dest_folder": "INBOX.Trash",
+  "expunge": false,
+  "gmail_trash": false,
+  "empty_folder": false,
+
+  "rules": [
+    "subject contains 'Confirm your Mailbox'",
+    "subject contains 'MAIL EXPIRY'",
+    "subject contains 'Mailbox password is due'",
+    "subject contains 'administrator policy'",
+    "subject contains 'Confirm your account'",
+    "subject contains 'Re-validate your'",
+    "subject contains 'Action Required: Mailbox'",
+    "subject contains 'Continue your Mailbox'",
+    "subject contains 'Incoming messages to'",
+    "subject contains 'Please confirm to continue'",
+    "subject contains 'Restore the emails'",
+    "subject contains 'Password notice Last Warning'",
+    "subject contains 'has restrictions'",
+    "subject contains 'Dispute transaction on your card'",
+    "sender contains 'administrator-mailbox@forkpoint.com'",
+    "sender contains 'cpanelportal@forkpoint.com'",
+    "sender contains 'ITsupport@forkpoint.com'",
+    "sender contains 'no-reply@forkpoint.com'",
+    "sender contains 'sharefile-merry.bright@edocs.com'"
+  ],
+
+  "targets": [],
+  "include_subdomains": false,
+  "scan_mode": "search",
+
+  "ai_cleanup": false,
+  "ai_scan_all": true,
+  "ai_review_obsolete": false,
+  "ai_obsolete_examples": ["LinkedIn profile-view alerts"],
+  "ai_model": "qwen3.5-9b-mlx",
+  "ai_threshold": 6.0,
+  "ai_sample": 5,
+  "ai_exclude": [],
+  "ai_include_self": false,
+  "ai_weights": {
+    "list_unsubscribe": 3.5,
+    "unread_ratio": 3.0,
+    "bulk": 1.5,
+    "sender_pattern": 1.0,
+    "frequency": 1.0
+  },
+  "ai_report_only": false,
+  "ai_report_csv": "ai_report.csv",
+  "ai_flag_spam": false,
+  "ai_no_check_spam": false,
+
+  "notify_profile": "forkpoint",
+  "local_cache": true,
+  "clear_cache": false,
+  "batch_size": 500,
+  "timeout": 120,
+  "dry_run": false,
+  "yes": false,
+  "verbose": false
+}

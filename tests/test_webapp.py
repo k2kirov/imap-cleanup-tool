@@ -341,6 +341,59 @@ class WebApiTests(unittest.TestCase):
         r = self.client.post("/api/ai-run", json={"sid": "nope", "model": "m"})
         self.assertEqual(r.status_code, 440)
 
+    def test_triage_without_session_is_rejected(self):
+        self.assertEqual(self.client.post(
+            "/api/triage/preview", json={"sid": "nope"}).status_code, 440)
+        self.assertEqual(self.client.post(
+            "/api/triage/move", json={"sid": "nope", "uid": "1",
+            "uidvalidity": "1", "sender": "a@example.com", "subject": "x",
+            "date": "", "category": "social"}).status_code, 440)
+
+    def test_triage_preview_and_checked_move(self):
+        from imap_cleanup_tool import triage, webapp
+        from tests.test_triage import TriageConn
+
+        conn = TriageConn()
+        sess = webapp.Session("triage-test", conn, "imap.example.com", 993,
+                              "me@example.com")
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(triage, "rules_path",
+                               return_value=Path(tmp) / "rules.sqlite"), \
+             mock.patch.object(webapp, "_folder_dicts", return_value=[]):
+            webapp._SESSIONS[sess.sid] = sess
+            try:
+                scan = self.client.post("/api/triage/preview",
+                                        json={"sid": sess.sid})
+                self.assertEqual(scan.status_code, 200)
+                row = scan.json()["rows"][0]
+                self.assertEqual(row["category"], "social")
+                self.assertIn("Jobs and Recruting", row["source_matches"])
+                bad = self.client.post("/api/triage/move", json={
+                    "sid": sess.sid, "uid": row["uid"],
+                    "uidvalidity": scan.json()["uidvalidity"],
+                    "sender": row["sender"], "subject": "wrong",
+                    "date": row["date"], "category": "social"})
+                self.assertEqual(bad.status_code, 400)
+                self.assertIn("1", conn.messages)
+                good = self.client.post("/api/triage/move", json={
+                    "sid": sess.sid, "uid": row["uid"],
+                    "uidvalidity": scan.json()["uidvalidity"],
+                    "sender": row["sender"], "subject": row["subject"],
+                    "date": row["date"], "category": "social", "train": True})
+                self.assertEqual(good.status_code, 200)
+                self.assertEqual(good.json()["folder"], "INBOX.Social")
+                self.assertNotIn("1", conn.messages)
+                self.assertEqual(triage.sender_rules(sess.user)[row["sender"]],
+                                 "social")
+                rules = self.client.get(f"/api/triage/rules/{sess.sid}")
+                self.assertEqual(rules.status_code, 200)
+                self.assertEqual(rules.json()["definitions"], [{
+                    "match_field": "From (address)",
+                    "match_style": "Is Equal to",
+                    "text_to_match": row["sender"], "category": "social"}])
+            finally:
+                webapp._SESSIONS.pop(sess.sid, None)
+
     def test_smtp_profiles_and_settings(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(notifications, "config_dir",

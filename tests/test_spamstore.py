@@ -51,6 +51,19 @@ class SpamStoreTests(unittest.TestCase):
                 self.assertTrue(item["verdict_delete"])
                 self.assertEqual(item["score"], 8.5)        # score updated
 
+    def test_only_confirmed_verdicts_skip_future_model_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(ss, "config_dir", return_value=Path(tmp)):
+                ss.record_from_report("a@x.com", _report([
+                    _sender("confirmed@x.com", 8, verdict={"delete": True}),
+                    _sender("synthetic@x.com", 8, verdict={"delete": True,
+                            "reason": "already in saved spam list (LLM skipped)"}),
+                    _sender("kept@x.com", 8, verdict={"delete": False}),
+                    _sender("unreviewed@x.com", 8),
+                ]), "report")
+                self.assertEqual(ss.confirmed_addresses("a@x.com"),
+                                 ["confirmed@x.com"])
+
     def test_no_duplicate_by_address_case_insensitive(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(ss, "config_dir", return_value=Path(tmp)):
