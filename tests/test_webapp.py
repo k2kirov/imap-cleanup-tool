@@ -367,6 +367,7 @@ class WebApiTests(unittest.TestCase):
                 self.assertEqual(scan.status_code, 200)
                 row = scan.json()["rows"][0]
                 self.assertEqual(row["category"], "social")
+                self.assertIn("Jobs and Recruting", row["source_matches"])
                 bad = self.client.post("/api/triage/move", json={
                     "sid": sess.sid, "uid": row["uid"],
                     "uidvalidity": scan.json()["uidvalidity"],
@@ -384,6 +385,12 @@ class WebApiTests(unittest.TestCase):
                 self.assertNotIn("1", conn.messages)
                 self.assertEqual(triage.sender_rules(sess.user)[row["sender"]],
                                  "social")
+                rules = self.client.get(f"/api/triage/rules/{sess.sid}")
+                self.assertEqual(rules.status_code, 200)
+                self.assertEqual(rules.json()["definitions"], [{
+                    "match_field": "From (address)",
+                    "match_style": "Is Equal to",
+                    "text_to_match": row["sender"], "category": "social"}])
             finally:
                 webapp._SESSIONS.pop(sess.sid, None)
 

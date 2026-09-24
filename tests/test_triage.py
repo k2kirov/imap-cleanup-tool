@@ -79,7 +79,143 @@ class TriageTests(unittest.TestCase):
         self.assertEqual(report["uidvalidity"], "42")
         self.assertEqual({r["uid"]: r["category"] for r in report["rows"]},
                          {"1": "social", "2": "inbox", "3": "other"})
+        self.assertIn("Jobs and Recruting", report["rows"][0]["source_matches"])
+        self.assertEqual(report["source_coverage"]["commit"],
+                         "fe5a0ce637504c6baf70514f13f369f09d234de0")
         self.assertFalse(any(c[0] in {"MOVE", "STORE", "COPY"} for c in conn.calls))
+        self.assertTrue(all("BODY.PEEK[HEADER.FIELDS" in str(c)
+                            for c in conn.calls if c[0] == "FETCH"))
+
+    def test_sieve_source_social_domains_need_an_activity_subject(self):
+        domains = ("facebook.com", "flickr.com", "instagram.com",
+                   "pinterest.com", "reddit.com", "tiktok.com",
+                   "tumblr.com", "twitter.com", "x.com")
+        for domain in domains:
+            with self.subTest(domain=domain):
+                row = {"sender": f"notice@updates.{domain}",
+                       "subject": "Someone commented on your post", "date": ""}
+                self.assertEqual(triage.classify(row),
+                                 ("social", "From (address) matches social domain; Subject matches activity"))
+                row["subject"] = "New terms of service"
+                self.assertEqual(triage.classify(row)[0], "inbox")
+
+    def test_spamsieve_match_rule_fields_and_styles(self):
+        row = {"sender": "News@Sub.Example.com", "subject": "Your New Follower"}
+        cases = (
+            ("From (address)", "Is Equal to", "news@sub.example.com", True),
+            ("From (address)", "Ends with", "@sub.example.com", True),
+            ("From (address)", "Starts with", "news@", True),
+            ("Subject", "Contains", "new follower", True),
+            ("Subject", "Matches Regex", r"\bnew follower\b", True),
+            ("From (address)", "Ends with", "@example.com", False),
+        )
+        for field, style, value, expected in cases:
+            with self.subTest(field=field, style=style, value=value):
+                self.assertEqual(triage.MatchRule(field, style, value).matches(row),
+                                 expected)
+        with self.assertRaisesRegex(ValueError, "location"):
+            triage.MatchRule("Body", "Contains", "test").matches(row)
+        with self.assertRaisesRegex(ValueError, "match style"):
+            triage.MatchRule("Subject", "Sounds like", "test").matches(row)
+
+    def test_social_domain_match_has_a_label_boundary(self):
+        row = {"sender": "notice@fakefacebook.com",
+               "subject": "Someone commented on your post", "date": ""}
+        self.assertEqual(triage.classify(row)[0], "inbox")
+
+    def test_social_security_subject_stays_inbox(self):
+        row = {"sender": "notice@updates.reddit.com",
+               "subject": "Security alert: someone commented on your post",
+               "date": ""}
+        self.assertEqual(triage.classify(row),
+                         ("inbox", "Protected subject or source rule"))
+
+    def test_inpector_header_rules_protect_important_mail(self):
+        cases = (("notice@banking.n26.com", "Your news", "Finances"),
+                 ("info@dhl.com", "Parcel on the way", "Deliveries"),
+                 ("notice@okta.com", "New device", "Security"),
+                 ("info@booking.com", "Your trip", "Travelling"))
+        for sender, subject, source in cases:
+            with self.subTest(source=source):
+                row = {"sender": sender, "subject": subject, "date": ""}
+                self.assertIn(source, triage.source_matches(row))
+                self.assertEqual(triage.classify(row)[0], "inbox")
+
+    def test_inpector_leisure_and_list_rules_only_suggest_other(self):
+        leisure = {"sender": "news@twitch.tv", "subject": "Live stream today",
+                   "date": ""}
+        self.assertEqual(triage.classify(leisure),
+                         ("other", "inpector Free Time rule"))
+        mailing = {"sender": "news@example.com", "subject": "Monthly notes",
+                   "date": "", "list_id": True}
+        self.assertEqual(triage.classify(mailing),
+                         ("other", "inpector Mailinglists rule"))
+        mailing["subject"] = "Your payment receipt"
+        self.assertEqual(triage.classify(mailing)[0], "inbox")
+
+    def test_inpector_mailing_list_header_variants(self):
+        for line in ("List-Unsubscribe-Post: List-Unsubscribe=One-Click",
+                     "X-BeenThere: list@example.com",
+                     "Precedence: list",
+                     "To: members@lists.example.com"):
+            with self.subTest(header=line):
+                header = ("From: news@example.com\r\nSubject: Monthly notes\r\n"
+                          + line + "\r\n\r\n").encode()
+                row = triage._parse_part((b"1 (UID 8 BODY[])", header))
+                self.assertIn("Mailinglists", triage.source_matches(row))
+
+    def test_inpector_domain_match_rejects_lookalike(self):
+        row = {"sender": "news@faketwitch.tv", "subject": "Live stream today",
+               "date": ""}
+        self.assertNotIn("Free Time", triage.source_matches(row))
+        self.assertEqual(triage.classify(row)[0], "inbox")
+
+    def test_security_hints_are_review_only(self):
+        header = (b"From: Customer Support <notice@paypaI-alert.xyz>\r\n"
+                  b"Subject: Verify your account - invoice #123456\r\n"
+                  b"Authentication-Results: mx.example; dmarc=fail; spf=fail\r\n"
+                  b"X-Spam-Score: 6\r\n\r\n")
+        row = triage._parse_part((b"1 (UID 8 BODY[])", header))
+        hints = triage.review_hints(row)
+        self.assertIn("Block common spam tlds", hints)
+        self.assertIn("Common Spam: spam headers", hints)
+        self.assertIn("Common Spam: DMARC alignment failure", hints)
+        self.assertIn("Common Spam: SPF-only failure", hints)
+        self.assertIn("Common Spam: Typosquatted brand domains", hints)
+        self.assertIn("Common Spam: Phishing subject lines", hints)
+        self.assertIn("Common Spam: Impersonated support addresses", hints)
+        self.assertIn("Common Spam: Invoice number pattern", hints)
+        self.assertEqual(triage.classify(row)[0], "inbox")
+
+    def test_security_hints_do_not_trust_missing_or_passing_auth_headers(self):
+        row = {"sender": "notice@example.com", "subject": "A regular note",
+               "date": "", "review_headers": {}}
+        self.assertEqual(triage.review_hints(row), [])
+        row["review_headers"] = {"authentication-results":
+            "mx.example; dmarc=fail; dmarc=pass; spf=fail; dkim=pass"}
+        self.assertNotIn("Common Spam: DMARC alignment failure",
+                         triage.review_hints(row))
+        self.assertNotIn("Common Spam: SPF-only failure",
+                         triage.review_hints(row))
+
+    def test_shipping_and_attachment_hints_keep_sender_boundaries(self):
+        header = (b"From: <alerts@fakedhl.com>\r\n"
+                  b"Subject: DHL package\r\n"
+                  b"Content-Disposition: attachment; filename=run.js\r\n\r\n")
+        row = triage._parse_part((b"1 (UID 8 BODY[])", header))
+        self.assertIn("Common Spam: False Shipping notifications",
+                      triage.review_hints(row))
+        self.assertIn("Filter malicous attachments (top-level header only)",
+                      triage.review_hints(row))
+        row["sender"] = "alerts@dhl.com"
+        self.assertNotIn("Common Spam: False Shipping notifications",
+                         triage.review_hints(row))
+
+    def test_source_coverage_reports_checks_that_need_more_than_headers(self):
+        names = {entry["name"] for entry in triage.source_coverage()["not_evaluated"]}
+        self.assertIn("PDF Bills", names)
+        self.assertIn("Filter abused standard addresses", names)
+        self.assertIn("Last Rule CatchAll", names)
 
     def test_sender_rule_learns_but_protected_subject_stays_inbox(self):
         triage.train_sender("me@example.com", "security-noreply@linkedin.com",
@@ -89,6 +225,9 @@ class TriageTests(unittest.TestCase):
         rows = triage.preview(conn, "me@example.com")["rows"]
         self.assertEqual(rows[1]["category"], "inbox")
         self.assertEqual(rules["security-noreply@linkedin.com"], "social")
+        self.assertEqual(triage.sender_rule_definitions("me@example.com"), [{
+            "match_field": "From (address)", "match_style": "Is Equal to",
+            "text_to_match": "security-noreply@linkedin.com", "category": "social"}])
         triage.forget_sender("me@example.com", "security-noreply@linkedin.com")
         self.assertEqual(triage.sender_rules("me@example.com"), {})
 

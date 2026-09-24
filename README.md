@@ -429,14 +429,47 @@ mail. Use **Move message** to move one checked message to `INBOX.Social` or
 `INBOX.Other`; the app verifies its UID, sender, subject, date, and UIDVALIDITY
 first. This path never uses Trash. Leave a message alone to keep it in INBOX.
 
-Tick **Suggest on future scans** with a move to save a per-account sender rule. The
-rule changes future previews. It does not start a background sorter. Use
+**Remember this sender** is checked by default when all scanned mail from that
+sender has the same suggestion. Clear it for a one-time move. A checked move
+saves a per-account **From (address) · Is Equal to · sender** rule for future
+previews. It does not start a background sorter. Use
 **Keep sender** to save an Inbox rule, or **Forget** to remove a rule. Security,
 billing, receipts, delivery, calendar invitations, and other protected subjects
 stay in Inbox even when a sender rule points elsewhere.
 
 This is a local review workflow inspired by [SaneBox's folder sorting](https://www.sanebox.com/faq) and
 training. It is not a SaneBox integration.
+
+Social suggestions use selected domains from the CC0
+[inpector Sieve filters](https://github.com/inpector/sieve-filters) plus the
+existing LinkedIn and Facebook notification domains. The sender's `From`
+domain and an activity match in `Subject` must both agree. The reasons use
+[SpamSieve's message field names](https://c-command.com/spamsieve/help/rule-columns-locations),
+such as **From (address)** and **Subject**. The built-in Social checks now use
+SpamSieve's **Location**, **Match Style**, and **Text to Match** rule shape.
+This app evaluates those checks against IMAP headers. SpamSieve's allowlist and
+blocklist classify mail as good or spam; they cannot choose this app's Social or
+Other review folders. The app does not import, export, or install SpamSieve rules.
+Regex checks use Python syntax, so they are not interchangeable with every
+SpamSieve regex.
+
+The pinned CC0 [inpector rule snapshot](src/imap_cleanup_tool/inpector_rules.json)
+adds header checks for Security, Deliveries, Finances, Fix Costs, Free Time,
+Jobs, Shopping, Tech, Travelling, Monitoring, and Mailinglists. The preview
+shows matching source groups. It also shows separate review hints for the
+source's spam and security header checks: attachment headers, sender domains,
+spam and authentication headers, support display names, shipping subjects, and
+subject patterns. These hints do not change the folder suggestion. Some source
+patterns are broad. A hit is not proof that a message is spam or unsafe.
+
+Security, delivery, finance, fixed-cost, and travel matches stay in Inbox.
+Non-social Free Time and mailing list matches suggest Other. Social still
+needs a social domain and activity subject. Protected subjects always stay in
+Inbox. The Source rule coverage panel lists checks that this header-only scan
+cannot evaluate. These need the SMTP envelope, your private address list, a
+message body, or MIME attachment parts. The app never runs the source's reject,
+discard, mark-read, or file-into actions. A user must select and move each
+message. The app does not create a Junk or Trash suggestion from these hints.
 
 ### Reports tab
 

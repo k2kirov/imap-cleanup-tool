@@ -906,7 +906,8 @@ def create_app():
     @app.get("/api/triage/rules/{sid}")
     def triage_rules(sid: str) -> dict[str, Any]:
         sess = _session(sid)
-        return {"rules": triage.sender_rules(sess.user)}
+        return {"rules": triage.sender_rules(sess.user),
+                "definitions": triage.sender_rule_definitions(sess.user)}
 
     @app.post("/api/triage/forget")
     def triage_forget(body: TriageRuleIn) -> dict[str, Any]:
