@@ -29,9 +29,13 @@ class SortStoreTests(unittest.TestCase):
                          "PRIMARY KEY (account, sender))")
             conn.execute("INSERT INTO sender_rule VALUES (?, ?, ?)",
                          (A, "a@b.test", "social"))
+            conn.execute("INSERT INTO sender_rule VALUES (?, ?, ?)",
+                         (A, "c@d.test", "other"))
             conn.commit()
-        self.assertEqual(sortstore.rules(A), {"a@b.test": {
-            "category": "social", "source": "user", "confidence": None}})
+        self.assertEqual(sortstore.rules(A), {
+            "a@b.test": {"category": "social", "source": "user", "confidence": None},
+            "c@d.test": {"category": "promotions", "source": "user", "confidence": None}})
+        self.assertEqual(triage.sender_rules(A)["c@d.test"], "promotions")
 
     def test_rule_precedence(self):
         self.assertTrue(sortstore.save_rule(A, "x@y.test", "news", "ai", 0.9))

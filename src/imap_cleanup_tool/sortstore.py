@@ -72,6 +72,8 @@ def connect() -> sqlite3.Connection:
         for column, declaration in _RULE_COLUMNS.items():
             if column not in have:
                 conn.execute(f"ALTER TABLE sender_rule ADD COLUMN {column} {declaration}")
+        # "other" was the manual tab's old name for the Promotions folder.
+        conn.execute("UPDATE sender_rule SET category='promotions' WHERE category='other'")
     return conn
 
 
