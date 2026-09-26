@@ -35,6 +35,13 @@ class TriageConn:
                       b'(\\HasNoChildren) "." "INBOX.Social"',
                       b'(\\HasNoChildren) "." "INBOX.Other"']
 
+    def create(self, name):
+        self.calls.append(("CREATE", name))
+        return "OK", [b"created"]
+
+    def subscribe(self, name):
+        return "OK", [b""]
+
     def uid(self, command, *args):
         self.calls.append((command, *args))
         if command == "SEARCH":
@@ -78,7 +85,7 @@ class TriageTests(unittest.TestCase):
         report = triage.preview(conn, "me@example.com")
         self.assertEqual(report["uidvalidity"], "42")
         self.assertEqual({r["uid"]: r["category"] for r in report["rows"]},
-                         {"1": "social", "2": "inbox", "3": "other"})
+                         {"1": "social", "2": "inbox", "3": "promotions"})
         self.assertIn("Jobs and Recruting", report["rows"][0]["source_matches"])
         self.assertEqual(report["source_coverage"]["commit"],
                          "fe5a0ce637504c6baf70514f13f369f09d234de0")
@@ -145,11 +152,11 @@ class TriageTests(unittest.TestCase):
         leisure = {"sender": "news@twitch.tv", "subject": "Live stream today",
                    "date": ""}
         self.assertEqual(triage.classify(leisure),
-                         ("other", "inpector Free Time rule"))
+                         ("promotions", "inpector Free Time rule"))
         mailing = {"sender": "news@example.com", "subject": "Monthly notes",
                    "date": "", "list_id": True}
         self.assertEqual(triage.classify(mailing),
-                         ("other", "inpector Mailinglists rule"))
+                         ("promotions", "inpector Mailinglists rule"))
         mailing["subject"] = "Your payment receipt"
         self.assertEqual(triage.classify(mailing)[0], "inbox")
 
@@ -259,7 +266,7 @@ class TriageTests(unittest.TestCase):
     def test_move_rejects_stale_uidvalidity_and_trash(self):
         conn = TriageConn()
         row = triage.preview(conn, "me@example.com")["rows"][0]
-        with self.assertRaisesRegex(ValueError, "Choose Social or Other"):
+        with self.assertRaisesRegex(ValueError, "Choose a sort folder"):
             triage.move_checked(conn, uid="1", uidvalidity="42", sender=row["sender"],
                                 subject=row["subject"], date=row["date"],
                                 category="trash")
@@ -288,3 +295,24 @@ class TriageTests(unittest.TestCase):
                             category="social")
         self.assertIn(("EXPUNGE", b"1"), conn.calls)
         self.assertEqual(set(conn.messages), {"2", "3"})
+
+    def test_folder_names_follow_server_delimiter(self):
+        conn = TriageConn()
+        self.assertEqual(triage.hierarchy_delimiter(conn), ".")
+        conn.list = lambda *a: ("OK", [b'(\\HasNoChildren) "/" "INBOX"'])
+        self.assertEqual(triage.folder_for(conn, "receipts"), "INBOX/Receipts")
+        conn.list = lambda *a: ("OK", [b'(\\Noselect) NIL ""'])
+        self.assertEqual(triage.hierarchy_delimiter(conn), ".")
+        with self.assertRaisesRegex(ValueError, "Choose a sort folder"):
+            triage.folder_name("trash")
+
+    def test_legacy_other_moves_to_promotions_and_creates_folder(self):
+        conn = TriageConn()
+        row = next(r for r in triage.preview(conn, "me@example.com")["rows"]
+                   if r["uid"] == "3")
+        folder = triage.move_checked(conn, uid="3", uidvalidity="42",
+                                     sender=row["sender"], subject=row["subject"],
+                                     date=row["date"], category="other")
+        self.assertEqual(folder, "INBOX.Promotions")
+        self.assertIn(("CREATE", '"INBOX.Promotions"'), conn.calls)
+        self.assertNotIn("3", conn.messages)

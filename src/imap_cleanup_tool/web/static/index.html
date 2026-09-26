@@ -589,20 +589,20 @@ tailwind.config = { theme: { extend: {
   <section class="bg-panel border border-line rounded-xl p-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div><h2 class="font-display text-xl font-semibold text-brand-light">Sort your inbox</h2>
-        <p class="text-muted text-sm mt-2 max-w-2xl">Scan message headers. Review each suggestion. Source rule names help explain matches. Move one message to Social or Other. Unselected mail stays in INBOX.</p></div>
+        <p class="text-muted text-sm mt-2 max-w-2xl">Scan message headers. Review each suggestion. Source rule names help explain matches. Move one message to a sort folder. Unselected mail stays in INBOX.</p></div>
       <button id="triageScan" type="button" class="px-4 py-2 rounded-lg bg-brand text-ink font-semibold hover:bg-brand-light">Scan inbox</button>
     </div>
     <p id="triageStatus" class="text-sm text-muted mt-4">Connect in Cleanup, then scan the inbox.</p>
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 text-sm">
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageTotal" class="block text-xl text-cream">—</strong><span class="text-muted">Inbox messages</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageSocial" class="block text-xl text-cream">—</strong><span class="text-muted">Social suggestions</span></div>
-      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageOther" class="block text-xl text-cream">—</strong><span class="text-muted">Other suggestions</span></div>
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageOther" class="block text-xl text-cream">—</strong><span class="text-muted">Other folder suggestions</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageInbox" class="block text-xl text-cream">—</strong><span class="text-muted">Stay in inbox</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageReview" class="block text-xl text-cream">—</strong><span class="text-muted">Review hints</span></div>
     </div>
     <div class="flex flex-wrap gap-3 mt-5">
       <label class="text-sm text-muted">Show
-        <select id="triageFilter" class="field mt-1"><option value="suggested">Folder suggestions</option><option value="review">Review hints</option><option value="all">All messages</option><option value="social">Social</option><option value="other">Other</option><option value="inbox">Inbox</option></select>
+        <select id="triageFilter" class="field mt-1"><option value="suggested">Folder suggestions</option><option value="review">Review hints</option><option value="all">All messages</option><option value="social">Social</option><option value="news">News</option><option value="promotions">Promotions</option><option value="notifications">Notifications</option><option value="receipts">Receipts</option><option value="cc">CC</option><option value="inbox">Inbox</option></select>
       </label>
       <label class="text-sm text-muted flex-1 min-w-[180px]">Find sender, subject, or source group
         <input id="triageSearch" class="field mt-1" type="search" placeholder="Search scanned messages">
@@ -2173,14 +2173,16 @@ if($('btnReportZip')) $('btnReportZip').onclick=()=>downloadReportsZip(Array.fro
 if($('btnReportDelete')) $('btnReportDelete').onclick=()=>deleteReports(Array.from(reportSel));
 
 /* ---------- Inbox sort: message-level preview and checked moves ---------- */
+const SORT_FOLDERS={social:'Social',news:'News',promotions:'Promotions',notifications:'Notifications',receipts:'Receipts',cc:'CC'};
 let triagePreview=null;
 function renderTriage(){
   const rows=triagePreview?.rows||[];
-  const counts={social:0,other:0,inbox:0};
+  const counts={social:0,inbox:0};
   rows.forEach(r=>{ counts[r.category]=(counts[r.category]||0)+1; });
+  const otherCount=rows.filter(r=>r.category!=='inbox'&&r.category!=='social').length;
   $('triageTotal').textContent=triagePreview?rows.length:'—';
   $('triageSocial').textContent=triagePreview?counts.social:'—';
-  $('triageOther').textContent=triagePreview?counts.other:'—';
+  $('triageOther').textContent=triagePreview?otherCount:'—';
   $('triageInbox').textContent=triagePreview?counts.inbox:'—';
   $('triageReview').textContent=triagePreview?rows.filter(r=>r.review_hints?.length).length:'—';
   const filter=$('triageFilter').value, q=$('triageSearch').value.trim().toLowerCase();
@@ -2193,8 +2195,8 @@ function renderTriage(){
   $('triageRows').innerHTML=shown.map(r=>'<tr class="border-b border-line/70" data-uid="'+escapeHtml(r.uid)+'">'
     +'<td class="py-3 pr-3 min-w-[230px]"><div class="text-cream font-medium">'+escapeHtml(r.subject||'(no subject)')+'</div><div class="text-muted text-xs mt-1">'+escapeHtml(r.sender)+'</div></td>'
     +'<td class="py-3 pr-3 text-muted text-xs whitespace-nowrap">'+escapeHtml(r.date||'Unknown')+'</td>'
-    +'<td class="py-3 pr-3 min-w-[130px]"><span class="text-cream">'+escapeHtml(r.category==='inbox'?'Inbox':r.category==='social'?'Social':'Other')+'</span><div class="text-muted text-xs">'+escapeHtml(r.reason)+'</div>'+(r.source_matches?.length?'<div class="text-muted text-xs mt-1">Source: '+escapeHtml(r.source_matches.join(', '))+'</div>':'')+(r.review_hints?.length?'<div class="text-warn text-xs mt-1">Review hint: '+escapeHtml(r.review_hints.join('; '))+'</div>':'')+'</td>'
-    +'<td class="py-3 min-w-[185px]"><select class="field text-xs triageDest"><option value="">Choose folder</option><option value="social" '+(r.category==='social'?'selected':'')+'>Social</option><option value="other" '+(r.category==='other'?'selected':'')+'>Other</option></select>'
+    +'<td class="py-3 pr-3 min-w-[130px]"><span class="text-cream">'+escapeHtml(r.category==='inbox'?'Inbox':(SORT_FOLDERS[r.category]||r.category))+'</span><div class="text-muted text-xs">'+escapeHtml(r.reason)+'</div>'+(r.source_matches?.length?'<div class="text-muted text-xs mt-1">Source: '+escapeHtml(r.source_matches.join(', '))+'</div>':'')+(r.review_hints?.length?'<div class="text-warn text-xs mt-1">Review hint: '+escapeHtml(r.review_hints.join('; '))+'</div>':'')+'</td>'
+    +'<td class="py-3 min-w-[185px]"><select class="field text-xs triageDest"><option value="">Choose folder</option>'+Object.entries(SORT_FOLDERS).map(([k,v])=>'<option value="'+k+'" '+(r.category===k?'selected':'')+'>'+v+'</option>').join('')+'</select>'
     +'<label class="flex items-center gap-2 text-xs text-muted mt-2"><input class="triageTrain" type="checkbox" '+(r.category!=='inbox' && senderKinds.get(r.sender).size===1?'checked':'')+'> Remember this sender</label>'
     +'<div class="flex gap-3 mt-2"><button class="triageMove text-brand-light text-xs hover:underline" type="button">Move message</button><button class="triageKeep text-muted text-xs hover:text-cream" type="button">Keep sender</button></div></td></tr>').join('');
   $('triageRows').querySelectorAll('tr[data-uid]').forEach(tr=>{
@@ -2232,14 +2234,14 @@ async function loadTriageRules(){
 }
 async function moveTriageRow(row,tr){
   const category=tr.querySelector('.triageDest').value;
-  if(!category){ toastErr('Choose Social or Other first.'); return; }
-  const folder=category==='social'?'INBOX.Social':'INBOX.Other';
-  if(!(await confirmDialog({title:'Move this message?',message:'Move only “'+row.subject+'” from '+row.sender+' to '+folder+'?',okText:'Move to '+folder}))) return;
+  if(!category){ toastErr('Choose a folder first.'); return; }
+  const label=SORT_FOLDERS[category];
+  if(!(await confirmDialog({title:'Move this message?',message:'Move only “'+row.subject+'” from '+row.sender+' to '+label+'?',okText:'Move to '+label}))) return;
   try{
     const train=tr.querySelector('.triageTrain').checked;
-    await api('/api/triage/move',{sid:SID,uid:row.uid,uidvalidity:triagePreview.uidvalidity,
+    const d=await api('/api/triage/move',{sid:SID,uid:row.uid,uidvalidity:triagePreview.uidvalidity,
       sender:row.sender,subject:row.subject,date:row.date,category,train});
-    toast('Moved to '+folder+'.','border-ok/50 bg-ok/15 text-ok');
+    toast('Moved to '+d.folder+'.','border-ok/50 bg-ok/15 text-ok');
     await loadTriage();
   }catch(e){ toastErr(e.message); }
 }
