@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
-from contextlib import closing
 from dataclasses import dataclass
 from email import message_from_bytes
 from functools import lru_cache
 from pathlib import Path
 
-from . import core
+from . import core, sortstore
 from .scheduler import config_dir
 
 
@@ -54,6 +52,8 @@ def _compiled_rule(pattern: str) -> re.Pattern:
 
 
 DESTINATIONS = {"social": "INBOX.Social", "other": "INBOX.Other"}
+# "other" is the old manual-tab name of the Promotions folder.
+LEGACY_CATEGORIES = {"other": "promotions"}
 _SOCIAL_SUBJECT_PATTERN = (
     r"\b(?:people viewed your profile|profile views?|connection request|"
     r"new follower|started following you|mentioned you|reacted to your post|"
@@ -259,20 +259,10 @@ def rules_path() -> Path:
     return config_dir() / "triage_rules.sqlite"
 
 
-def _rules_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(rules_path())
-    conn.execute("CREATE TABLE IF NOT EXISTS sender_rule ("
-                 "account TEXT NOT NULL, sender TEXT NOT NULL, category TEXT NOT NULL,"
-                 "PRIMARY KEY (account, sender))")
-    return conn
-
-
 def sender_rules(account: str) -> dict[str, str]:
-    """Return the user's explicit sender choices for one mailbox."""
-    with closing(_rules_db()) as conn:
-        return dict(conn.execute(
-            "SELECT sender, category FROM sender_rule WHERE account=?",
-            (account.strip().lower(),)).fetchall())
+    """Return the saved sender choices for one mailbox (any rule source)."""
+    return {sender: rule["category"]
+            for sender, rule in sortstore.rules(account).items()}
 
 
 def sender_rule_definitions(account: str) -> list[dict[str, str]]:
@@ -285,22 +275,15 @@ def sender_rule_definitions(account: str) -> list[dict[str, str]]:
 
 
 def train_sender(account: str, sender: str, category: str) -> None:
-    """Remember an explicit choice for future previews; Inbox is a keep rule."""
-    if category not in {*DESTINATIONS, "inbox"}:
-        raise ValueError("Choose Inbox, Social, or Other.")
-    with closing(_rules_db()) as conn:
-        with conn:
-            conn.execute("INSERT INTO sender_rule (account, sender, category) "
-                         "VALUES (?, ?, ?) ON CONFLICT(account, sender) DO UPDATE "
-                         "SET category=excluded.category",
-                         (account.strip().lower(), sender.strip().lower(), category))
+    """Remember an explicit choice for future sorting; Inbox is a keep rule."""
+    category = LEGACY_CATEGORIES.get(category, category)
+    if category not in sortstore.VALID_CATEGORIES:
+        raise ValueError("Choose Inbox or a sort folder.")
+    sortstore.save_rule(account, sender, category, "user")
 
 
 def forget_sender(account: str, sender: str) -> None:
-    with closing(_rules_db()) as conn:
-        with conn:
-            conn.execute("DELETE FROM sender_rule WHERE account=? AND sender=?",
-                         (account.strip().lower(), sender.strip().lower()))
+    sortstore.forget_rule(account, sender)
 
 
 def classify(row: dict, rules: dict[str, str] | None = None) -> tuple[str, str]:
@@ -318,7 +301,7 @@ def classify(row: dict, rules: dict[str, str] | None = None) -> tuple[str, str]:
                         re.IGNORECASE)):
         return "inbox", "Protected subject or source rule"
     learned = (rules or {}).get(sender)
-    if learned in {*DESTINATIONS, "inbox"}:
+    if learned in sortstore.VALID_CATEGORIES:
         return learned, "From (address) is equal to saved sender"
     if (any(rule.matches(row) for rule in _SOCIAL_FROM_RULES)
             and _SOCIAL_SUBJECT_RULE.matches(row)):
