@@ -238,6 +238,14 @@ class RunTests(AutosortTestCase):
         self.assertEqual(autosort.run(box, A, now=NOW).moved, 0)
         self.assertEqual(autosort.run(box, A, backlog=True, now=NOW).moved, 1)
 
+    def test_missing_internaldate_counts_as_before_cutoff(self):
+        box = FakeMailbox()
+        box.add("INBOX", sender="writer@substack.com", subject="Undated",
+                message_id="<nd1@x>")
+        with mock.patch.object(imaplib, "Internaldate2tuple", return_value=None):
+            self.assertEqual(autosort.run(box, A, now=NOW).moved, 0)
+            self.assertEqual(autosort.run(box, A, backlog=True, now=NOW).moved, 1)
+
     def test_flagged_and_protected_mail_stays(self):
         box = FakeMailbox()
         box.add("INBOX", sender="writer@substack.com", subject="Issue 1",
@@ -373,6 +381,7 @@ class RunTests(AutosortTestCase):
         self.assertEqual(result.moved, 0)
         self.assertIn("Cannot create INBOX.News", " ".join(result.skipped))
         self.assertEqual(len(box.folders["INBOX"]), 1)
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 0)
 
     def test_failed_move_is_skipped_and_retried_next_run(self):
         box = FakeMailbox()

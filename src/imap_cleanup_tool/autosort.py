@@ -485,7 +485,11 @@ def _move_all(conn, account: str, result: RunResult, candidates: list[dict],
             "uid": row["uid"], "message_id": row["message_id"], "sender": row["sender"],
             "subject": row["subject"], "category": decision.category, "folder": target,
             "layer": decision.layer, "reason": decision.reason})
-        if result.dry_run or target in failed_folders:
+        if result.dry_run:
+            continue
+        if target in failed_folders:
+            # Retried next run, like a failed move.
+            failed_uids.append(int(row["uid"]))
             continue
         if target not in known:
             try:
@@ -493,6 +497,7 @@ def _move_all(conn, account: str, result: RunResult, candidates: list[dict],
                 known.add(target)
             except (imaplib.IMAP4.error, OSError) as exc:
                 failed_folders.add(target)
+                failed_uids.append(int(row["uid"]))
                 result.skipped.append(f"Cannot create {target}: {exc}")
                 continue
         try:
