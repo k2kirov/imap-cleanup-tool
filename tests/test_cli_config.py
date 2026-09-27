@@ -145,6 +145,16 @@ class AutosortCliTests(unittest.TestCase):
         self.assertEqual(self._main(mock.MagicMock(side_effect=autosort.Busy("busy"))), 0)
         self.assertEqual(self._main(mock.MagicMock(side_effect=ValueError("bad"))), 2)
 
+    def test_ai_pending_logged(self):
+        result = autosort.RunResult(run_id="r", dry_run=True, planned=[],
+                                    ai_pending=["a@b.test", "c@d.test"])
+        run = mock.MagicMock(return_value=result)
+        with self.assertLogs(cli.core.logger, level="INFO") as log_ctx:
+            code = self._main(run)
+        self.assertEqual(code, 0)
+        self.assertTrue(any("Would ask the AI about 2 sender(s): a@b.test, c@d.test" in msg
+                           for msg in log_ctx.output))
+
 
 if __name__ == "__main__":
     unittest.main()
