@@ -102,12 +102,19 @@ def save_rule(account: str, sender: str, category: str, source: str,
     return True
 
 
-def rules(account: str) -> dict[str, dict]:
+def rules(account: str, *, with_updated_at: bool = False) -> dict[str, dict]:
+    """Sender -> {category, source, confidence}; plus updated_at when asked."""
     with closing(connect()) as conn:
-        rows = conn.execute("SELECT sender, category, source, confidence FROM "
-                            "sender_rule WHERE account=?", (_norm(account),)).fetchall()
-    return {r["sender"]: {"category": r["category"], "source": r["source"],
-                          "confidence": r["confidence"]} for r in rows}
+        rows = conn.execute("SELECT sender, category, source, confidence, updated_at "
+                            "FROM sender_rule WHERE account=?", (_norm(account),)).fetchall()
+    found = {}
+    for r in rows:
+        rule = {"category": r["category"], "source": r["source"],
+                "confidence": r["confidence"]}
+        if with_updated_at:
+            rule["updated_at"] = r["updated_at"]
+        found[r["sender"]] = rule
+    return found
 
 
 def forget_rule(account: str, sender: str) -> None:

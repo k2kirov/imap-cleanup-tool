@@ -52,6 +52,14 @@ class SortStoreTests(unittest.TestCase):
         sortstore.forget_rule(A, "x@y.test")
         self.assertEqual(sortstore.rules(A), {})
 
+    def test_rules_can_include_updated_at(self):
+        with mock.patch.object(sortstore, "_now", return_value=EPOCH):
+            sortstore.save_rule(A, "x@y.test", "news", "user")
+        self.assertEqual(sortstore.rules(A, with_updated_at=True)["x@y.test"],
+                         {"category": "news", "source": "user", "confidence": None,
+                          "updated_at": EPOCH})
+        self.assertNotIn("updated_at", sortstore.rules(A)["x@y.test"])
+
     def test_move_log_roundtrip(self):
         run = sortstore.new_run_id()
         move_id = sortstore.log_move(

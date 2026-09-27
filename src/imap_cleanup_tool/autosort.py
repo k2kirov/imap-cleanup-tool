@@ -58,6 +58,16 @@ def _recent_message_ids(conn, folder: str, since: datetime) -> set[str]:
             if (mid := core._message_id(block))}
 
 
+def _after(first: str | None, second: str | None) -> bool:
+    """True if ISO timestamp ``first`` is strictly later than ``second``."""
+    if not first or not second:
+        return False
+    try:
+        return datetime.fromisoformat(first) > datetime.fromisoformat(second)
+    except ValueError:
+        return False
+
+
 def learn(conn, account: str, *, now: datetime) -> int:
     """Turn the user's own moves of auto-sorted mail into sender rules."""
     since = now - timedelta(days=LEARN_DAYS)
@@ -74,7 +84,7 @@ def learn(conn, account: str, *, now: datetime) -> int:
             continue
         for message_id in _recent_message_ids(conn, folder, since):
             where.setdefault(message_id, folder)
-    current = sortstore.rules(account)
+    current = sortstore.rules(account, with_updated_at=True)
     changed = 0
     for move in logged:
         found = where.get(move["message_id"])
@@ -84,9 +94,14 @@ def learn(conn, account: str, *, now: datetime) -> int:
         rule = current.get(move["sender"])
         if rule and rule["category"] == category:
             continue
+        if rule and rule["source"] == "user" and _after(rule.get("updated_at"),
+                                                        move["moved_at"]):
+            # The user chose this sender's folder after the move; that wins
+            # over whatever the older move would teach.
+            continue
         if sortstore.save_rule(account, move["sender"], category, "learned"):
             current[move["sender"]] = {"category": category, "source": "learned",
-                                       "confidence": None}
+                                       "confidence": None, "updated_at": None}
             changed += 1
     return changed
 

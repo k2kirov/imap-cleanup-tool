@@ -66,6 +66,27 @@ class LearnTests(AutosortTestCase):
         self.assertEqual(sortstore.rules(A)["n@brand.test"]["source"], "user")
 
 
+    def test_newer_user_rule_is_not_reverted_by_an_older_move(self):
+        box = FakeMailbox(("INBOX", "INBOX.News", "INBOX.Promotions"))
+        box.add("INBOX", sender="n@brand.test", subject="s", message_id="<m5@x>")
+        with mock.patch.object(sortstore, "_now", return_value="2026-09-20T10:00:00+00:00"):
+            self.log("INBOX.News", "<m5@x>")
+        with mock.patch.object(sortstore, "_now", return_value="2026-09-21T10:00:00+00:00"):
+            sortstore.save_rule(A, "n@brand.test", "promotions", "user")
+        self.assertEqual(autosort.learn(box, A, now=NOW), 0)
+        rule = sortstore.rules(A)["n@brand.test"]
+        self.assertEqual((rule["category"], rule["source"]), ("promotions", "user"))
+
+    def test_older_user_rule_is_updated_by_a_newer_move(self):
+        box = FakeMailbox(("INBOX", "INBOX.News", "INBOX.Promotions"))
+        box.add("INBOX", sender="n@brand.test", subject="s", message_id="<m6@x>")
+        with mock.patch.object(sortstore, "_now", return_value="2026-09-19T10:00:00+00:00"):
+            sortstore.save_rule(A, "n@brand.test", "news", "user")
+        with mock.patch.object(sortstore, "_now", return_value="2026-09-20T10:00:00+00:00"):
+            self.log("INBOX.News", "<m6@x>")
+        self.assertEqual(autosort.learn(box, A, now=NOW), 1)
+        self.assertEqual(sortstore.rules(A)["n@brand.test"]["category"], "inbox")
+
 class TrustSentTests(AutosortTestCase):
     def test_first_run_trusts_recipients_but_not_me(self):
         box = FakeMailbox()
