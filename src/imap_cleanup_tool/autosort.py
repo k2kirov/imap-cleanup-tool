@@ -395,8 +395,12 @@ def _ai_layer(account: str, unknown: dict[str, list[dict]],
         result.ai_pending = sorted(unknown)
         return []
     max_calls = int(settings["ai_max_calls"])
-    verdicts, errors = ai_sort.classify_senders(unknown, cfg, max_calls=max_calls,
-                                                litellm=litellm)
+    try:
+        verdicts, errors = ai_sort.classify_senders(unknown, cfg, max_calls=max_calls,
+                                                    litellm=litellm)
+    except ai_sort.Skip as exc:
+        result.ai_note = str(exc)
+        return []
     result.skipped += [f"AI: {error}" for error in errors]
     for sender, verdict in verdicts.items():
         if verdict["confidence"] >= ctx.ai_min_confidence:

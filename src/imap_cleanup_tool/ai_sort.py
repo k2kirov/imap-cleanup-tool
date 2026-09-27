@@ -7,12 +7,14 @@ the mailbox.
 from __future__ import annotations
 
 import json
+from importlib.util import find_spec
 
 from . import ai, llm
 from .rulepacks import CATEGORIES
 
 ALLOWED = frozenset((*CATEGORIES, "inbox"))
 SAMPLE_SIZE = 5
+INSTALL_AI = "Install the [ai] extra to use the AI layer."
 SYSTEM_PROMPT = (
     "You sort email for a busy person. For one sender you get up to five recent "
     "subjects and header flags. Pick exactly one category: inbox (a person wrote "
@@ -37,6 +39,9 @@ def load_model(name: str) -> dict:
         raise Skip(str(exc)) from exc
     if cfg.get("encrypted"):
         raise Skip("Encrypted model configs can't run unattended.")
+    if find_spec("litellm") is None:
+        # Checked here too so a preview reports it before any real run.
+        raise Skip(INSTALL_AI)
     return cfg
 
 
@@ -70,7 +75,7 @@ def classify_senders(groups: dict[str, list[dict]], cfg: dict, *, max_calls: int
         try:
             import litellm  # pylint: disable=import-outside-toplevel,redefined-outer-name
         except ImportError as exc:
-            raise Skip("Install the [ai] extra to use the AI layer.") from exc
+            raise Skip(INSTALL_AI) from exc
     base = {"model": cfg["model"], "timeout": ai.LLM_TIMEOUT}
     if cfg.get("api_key"):
         base["api_key"] = cfg["api_key"]

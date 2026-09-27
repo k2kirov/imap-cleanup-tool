@@ -93,6 +93,12 @@ class LoadModelTests(unittest.TestCase):
         with mock.patch.object(llm, "load_model", return_value=CFG):
             self.assertEqual(ai_sort.load_model("local"), CFG)
 
+    def test_missing_litellm_skips(self):
+        with mock.patch.object(llm, "load_model", return_value=CFG), \
+                mock.patch.object(ai_sort, "find_spec", return_value=None):
+            with self.assertRaisesRegex(ai_sort.Skip, r"\[ai\]"):
+                ai_sort.load_model("local")
+
 
 if __name__ == "__main__":
     unittest.main()

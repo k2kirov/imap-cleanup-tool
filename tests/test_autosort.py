@@ -263,6 +263,28 @@ class RunTests(AutosortTestCase):
         self.assertIn("AI budget", " ".join(result.skipped))
         self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 1)
 
+    def test_missing_litellm_is_reported_not_raised(self):
+        sortstore.update_settings(A, ai_model="local")
+        box = FakeMailbox()
+        box.add("INBOX", sender="hello@shop.test", subject="Hello", message_id="<l1@x>")
+        with mock.patch.object(llm, "load_model", return_value=CFG), \
+                mock.patch.object(ai_sort, "find_spec", return_value=None):
+            result = autosort.run(box, A, now=NOW)
+        self.assertIn("[ai]", result.ai_note)
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 1)
+
+    def test_skip_from_classify_is_reported_not_raised(self):
+        sortstore.update_settings(A, ai_model="local")
+        box = FakeMailbox()
+        box.add("INBOX", sender="hello@shop.test", subject="Hello", message_id="<l2@x>")
+        skip = ai_sort.Skip("Install the [ai] extra to use the AI layer.")
+        with mock.patch.object(ai_sort, "load_model", return_value=CFG), \
+                mock.patch.object(ai_sort, "classify_senders", side_effect=skip):
+            result = autosort.run(box, A, now=NOW)
+        self.assertIn("[ai]", result.ai_note)
+        self.assertEqual(len(box.folders["INBOX"]), 1)
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 1)
+
     def test_gmail_category_and_slash_delimiter(self):
         box = FakeMailbox(capabilities=("IMAP4REV1", "MOVE", "X-GM-EXT-1"), delimiter="/")
         uid = box.add("INBOX", sender="hello@shop.test", subject="Hello", message_id="<g1@x>")
