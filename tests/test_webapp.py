@@ -500,6 +500,86 @@ class WebApiTests(unittest.TestCase):
                     m["name"] == "m1"
                     for m in self.client.get("/api/llm-models").json()["models"]))
 
+    def _autosort_session(self, tmp):
+        from imap_cleanup_tool import webapp
+        from tests.fake_imap import FakeMailbox
+
+        box = FakeMailbox()
+        box.add("INBOX", sender="writer@substack.com", subject="Issue 1",
+                message_id="<w1@x>")
+        sess = webapp.Session("autosort-test", box, "imap.example.com", 993,
+                              "me@example.com")
+        webapp._SESSIONS[sess.sid] = sess
+        return box, sess
+
+    def test_autosort_run_undo_and_review(self):
+        from imap_cleanup_tool import scheduler, sortstore, triage, webapp
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(triage, "rules_path", return_value=Path(tmp) / "r.sqlite"), \
+             mock.patch.object(scheduler, "config_dir", return_value=Path(tmp)), \
+             mock.patch.object(webapp, "_folder_dicts", return_value=[]):
+            box, sess = self._autosort_session(tmp)
+            try:
+                sortstore.update_settings(sess.user, started_at="2026-09-01T00:00:00+00:00")
+                dry = self.client.post("/api/autosort/run", json={"sid": sess.sid})
+                self.assertEqual(dry.status_code, 200)
+                self.assertEqual(dry.json()["planned"][0]["folder"], "INBOX.News")
+                self.assertEqual(len(box.folders["INBOX"]), 1)
+                real = self.client.post("/api/autosort/run",
+                                        json={"sid": sess.sid, "dry_run": False})
+                self.assertEqual(real.json()["moved"], 1)
+                state = self.client.get(f"/api/autosort/state/{sess.sid}").json()
+                move_id = state["moves"][0]["id"]
+                undo = self.client.post("/api/autosort/undo",
+                                        json={"sid": sess.sid, "move_id": move_id})
+                self.assertEqual(undo.json(), {"undone": 1, "errors": []})
+                self.assertEqual(len(box.folders["INBOX"]), 1)
+                self.assertEqual(self.client.post("/api/autosort/undo",
+                                 json={"sid": sess.sid}).status_code, 400)
+                sortstore.add_review(sess.user, "q@z.test", "news", 0.4, "unsure")
+                pick = self.client.post("/api/autosort/review", json={
+                    "sid": sess.sid, "sender": "q@z.test", "category": "promotions"})
+                self.assertEqual(pick.status_code, 200)
+                self.assertEqual(sortstore.reviews(sess.user), [])
+                self.assertEqual(sortstore.rules(sess.user)["q@z.test"]["source"], "user")
+            finally:
+                webapp._SESSIONS.pop(sess.sid, None)
+
+    def test_autosort_settings_reject_encrypted_model(self):
+        from imap_cleanup_tool import scheduler, triage, webapp
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(triage, "rules_path", return_value=Path(tmp) / "r.sqlite"), \
+             mock.patch.object(scheduler, "config_dir", return_value=Path(tmp)), \
+             mock.patch.object(llm, "list_models", return_value=[
+                 {"name": "sec", "encrypted": True}, {"name": "open", "encrypted": False}]):
+            _, sess = self._autosort_session(tmp)
+            try:
+                bad = self.client.post("/api/autosort/settings",
+                                       json={"sid": sess.sid, "ai_model": "sec"})
+                self.assertEqual(bad.status_code, 400)
+                good = self.client.post("/api/autosort/settings", json={
+                    "sid": sess.sid, "ai_model": "open", "ai_min_confidence": 0.85,
+                    "ai_max_calls": 20})
+                self.assertEqual(good.json()["ai_max_calls"], 20)
+            finally:
+                webapp._SESSIONS.pop(sess.sid, None)
+
+    def test_autosort_job_args(self):
+        with mock.patch.object(profiles, "list_profiles",
+                               return_value=[{"name": "p", "encrypted": False}]), \
+             mock.patch.object(scheduler, "load_jobs", return_value=[]), \
+             mock.patch.object(scheduler, "upsert_job") as upsert, \
+             mock.patch.object(scheduler, "export_system", return_value="cmd"):
+            r = self.client.post("/api/jobs", json={
+                "name": "autosort", "profile": "p", "kind": "interval",
+                "minutes": 15, "autosort": True})
+        self.assertEqual(r.status_code, 200)
+        job = upsert.call_args.args[0]
+        self.assertIn("--autosort", job.args)
+        self.assertEqual(job.schedule, {"kind": "interval", "minutes": 15})
+
 
 if __name__ == "__main__":
     unittest.main()
