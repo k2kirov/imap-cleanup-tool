@@ -49,13 +49,32 @@ def _fetch_headers(conn, uids: list[int], fields: str) -> list[bytes]:
     return blocks
 
 
+# The <...> token core._message_id extracts, applied to a parsed header
+# value so folded or commented Message-ID headers yield the same ID.
+_MSGID_TOKEN = re.compile(r"<[^>\r\n]+>")
+_UNSAFE_MSGID = re.compile(r'["\\\r\n]')
+
+
+def _message_id_of(value) -> str:
+    """The single ``<...>`` Message-ID in a header value, or ''."""
+    found = _MSGID_TOKEN.search(str(value or ""))
+    return found.group(0).strip() if found else ""
+
+
+def _searchable_message_id(message_id: str) -> str:
+    """Refuse IDs that could break out of a quoted IMAP SEARCH string."""
+    if _UNSAFE_MSGID.search(message_id):
+        raise ValueError("This message has an unusual Message-ID and cannot be found safely.")
+    return message_id
+
+
 def _recent_message_ids(conn, folder: str, since: datetime) -> set[str]:
     status, _ = conn.select(core._quote_mailbox(folder), readonly=True)
     if status != "OK":
         return set()
     uids = _search_uids(conn, "SINCE", _imap_date(since))
     return {mid for block in _fetch_headers(conn, uids, "MESSAGE-ID")
-            if (mid := core._message_id(block))}
+            if (mid := _message_id_of(message_from_bytes(block).get("Message-ID")))}
 
 
 def _after(first: str | None, second: str | None) -> bool:
@@ -161,10 +180,11 @@ def undo_move(conn, account: str, move_id: int) -> str:
         raise ValueError("This move was already undone.")
     if not move["message_id"]:
         raise ValueError("This message has no Message-ID, so it cannot be found again.")
+    message_id = _searchable_message_id(move["message_id"])
     status, _ = conn.select(core._quote_mailbox(move["target_folder"]), readonly=False)
     if status != "OK":
         raise ValueError(f"Cannot open {move['target_folder']}.")
-    uids = _search_uids(conn, "HEADER", "Message-ID", f'"{move["message_id"]}"')
+    uids = _search_uids(conn, "HEADER", "Message-ID", f'"{message_id}"')
     if not uids:
         raise ValueError(f"The message is no longer in {move['target_folder']}.")
     triage.move_uid(conn, str(uids[0]), "INBOX")
@@ -254,7 +274,7 @@ def _parse(meta: bytes, header: bytes, account: str) -> dict | None:
     sender = core.extract_sender_email(msg.get("From", "")) or "(no sender)"
     return {"uid": uid, "flags": flags, "received": received, "sender": sender,
             "subject": core.decode_mime_header(msg.get("Subject", "")),
-            "message_id": (msg.get("Message-ID") or "").strip(),
+            "message_id": _message_id_of(msg.get("Message-ID")),
             "signals": signals.detect(headers, sender, account)}
 
 

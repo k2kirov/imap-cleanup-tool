@@ -161,6 +161,14 @@ class UndoTests(AutosortTestCase):
         self.assertEqual(len(result["errors"]), 1)
 
 
+    def test_undo_refuses_unsafe_message_id_without_searching(self):
+        box = FakeMailbox(("INBOX", "INBOX.News"))
+        for bad in ('<a"b@x>', "<a\\b@x>", "<a@x>\r\nX", "<a@x>\nX"):
+            move_id = self.log("INBOX.News", bad)
+            with self.assertRaisesRegex(ValueError, "unusual Message-ID"):
+                autosort.undo_move(box, A, move_id)
+        self.assertFalse(any(c[0] == "SEARCH" for c in box.calls))
+
 NEWS = "List-Id: <l.test>\r\nList-Post: <mailto:l@l.test>\r\n"
 CFG = {"name": "local", "model": "ollama/llama3", "api_base": "", "api_key": "",
        "encrypted": False, "track_costs": False, "cost_input": 0, "cost_output": 0}
@@ -320,6 +328,22 @@ class RunTests(AutosortTestCase):
         self.assertIn("AI calls per run is 0", result.ai_note)
         self.assertNotIn("AI budget", " ".join(result.skipped))
         self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 2)
+
+    def test_folded_message_id_is_normalized_and_learnable(self):
+        box = FakeMailbox(("INBOX", "INBOX.News"))
+        box.add("INBOX", sender="writer@substack.com", subject="Issue F",
+                extra="Message-ID:\r\n <fold@x>\r\n")
+        box.add("INBOX", sender="writer2@substack.com", subject="Issue C",
+                extra="Message-ID: (note) <comment@x>\r\n")
+        self.assertEqual(autosort.run(box, A, now=NOW).moved, 2)
+        self.assertEqual(sorted(m["message_id"] for m in sortstore.moves(A)),
+                         ["<comment@x>", "<fold@x>"])
+        # The user drags the folded one back to INBOX.
+        uid = next(u for u, m in box.folders["INBOX.News"].items()
+                   if "fold@x" in m["header"])
+        box.folders["INBOX"]["99"] = box.folders["INBOX.News"].pop(uid)
+        self.assertEqual(autosort.learn(box, A, now=NOW), 1)
+        self.assertEqual(sortstore.rules(A)["writer@substack.com"]["category"], "inbox")
 
     def test_gmail_category_and_slash_delimiter(self):
         box = FakeMailbox(capabilities=("IMAP4REV1", "MOVE", "X-GM-EXT-1"), delimiter="/")
