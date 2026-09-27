@@ -380,8 +380,10 @@ def _sort_inbox(conn, account: str, result: RunResult, *, settings: dict,
               if settings["started_at"] else None)
     moved_ids = sortstore.moved_message_ids(account)
     candidates = [r for r in rows
-                  if (backlog or cutoff is None or r["received"] is None
-                      or r["received"] >= cutoff)
+                  # No INTERNALDATE counts as "before the cutoff": old mail
+                  # is only sorted when asked for (backlog).
+                  if (backlog or cutoff is None
+                      or (r["received"] is not None and r["received"] >= cutoff))
                   and not (r["message_id"] and r["message_id"] in moved_ids)]
     rules = sortstore.rules(account)
     if sent_trust:
