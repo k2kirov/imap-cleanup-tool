@@ -148,9 +148,11 @@ CFG = {"name": "local", "model": "ollama/llama3", "api_base": "", "api_key": "",
 class FakeLiteLLM:
     def __init__(self, replies):
         self.replies = list(replies)
+        self.calls = []
 
     def completion(self, **kwargs):
         from types import SimpleNamespace
+        self.calls.append(kwargs)
         return SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content=self.replies.pop(0)))],
             usage=None)
@@ -284,6 +286,19 @@ class RunTests(AutosortTestCase):
         self.assertIn("[ai]", result.ai_note)
         self.assertEqual(len(box.folders["INBOX"]), 1)
         self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 1)
+
+    def test_zero_ai_budget_turns_ai_off_and_advances_cursor(self):
+        sortstore.update_settings(A, ai_model="local", ai_max_calls=0)
+        box = FakeMailbox()
+        box.add("INBOX", sender="a@one.test", subject="Hello", message_id="<z1@x>")
+        box.add("INBOX", sender="b@two.test", subject="Hello", message_id="<z2@x>")
+        fake = FakeLiteLLM([])
+        with mock.patch.object(ai_sort, "load_model", return_value=CFG):
+            result = autosort.run(box, A, now=NOW, litellm=fake)
+        self.assertEqual(fake.calls, [])
+        self.assertIn("AI calls per run is 0", result.ai_note)
+        self.assertNotIn("AI budget", " ".join(result.skipped))
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 2)
 
     def test_gmail_category_and_slash_delimiter(self):
         box = FakeMailbox(capabilities=("IMAP4REV1", "MOVE", "X-GM-EXT-1"), delimiter="/")

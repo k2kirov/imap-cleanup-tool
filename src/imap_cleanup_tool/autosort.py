@@ -390,11 +390,16 @@ def _ai_layer(account: str, unknown: dict[str, list[dict]],
     except ai_sort.Skip as exc:
         result.ai_note = str(exc)
         return []
+    max_calls = int(settings["ai_max_calls"])
+    if max_calls <= 0:
+        # A zero budget means AI is off; no sender is held back for a retry,
+        # otherwise the INBOX cursor would never move past them.
+        result.ai_note = "AI calls per run is 0; AI fallback is off."
+        return []
     if result.dry_run:
         # Never call the model in a preview; show who WOULD be asked instead.
         result.ai_pending = sorted(unknown)
         return []
-    max_calls = int(settings["ai_max_calls"])
     try:
         verdicts, errors = ai_sort.classify_senders(unknown, cfg, max_calls=max_calls,
                                                     litellm=litellm)
