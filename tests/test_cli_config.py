@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from imap_cleanup_tool import cli, scheduler
+from imap_cleanup_tool import autosort, cli, scheduler
 
 
 class CliConfigTests(unittest.TestCase):
@@ -106,6 +106,44 @@ class CliConfigTests(unittest.TestCase):
         args = cli.parse_args(["--config", str(path)])
         self.assertEqual(args.ai_obsolete_example,
                          ["LinkedIn profile-view alerts"])
+
+
+class AutosortCliTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.old_cwd = os.getcwd()
+        os.chdir(self.tmp.name)
+
+    def tearDown(self):
+        os.chdir(self.old_cwd)
+        self.tmp.cleanup()
+
+    def test_flags_parse(self):
+        args = cli.parse_args(["--autosort", "--backlog", "--dry-run"])
+        self.assertTrue(args.autosort and args.backlog and args.dry_run)
+        args = cli.parse_args([])
+        self.assertFalse(args.autosort or args.backlog)
+
+    def _main(self, run_mock):
+        with mock.patch.object(cli.core, "connect", return_value=mock.MagicMock()), \
+             mock.patch.object(autosort, "run", run_mock):
+            return cli.main(["--host", "imap.example.com", "--user", "me@example.com",
+                             "--password", "pw", "--autosort", "--dry-run"])
+
+    def test_main_dispatches_to_autosort(self):
+        result = autosort.RunResult(run_id="r", dry_run=True, planned=[{
+            "uid": "1", "message_id": "<1@x>", "sender": "a@b.test", "subject": "s",
+            "category": "news", "folder": "INBOX.News", "layer": "news",
+            "reason": "List-Post"}])
+        run = mock.MagicMock(return_value=result)
+        self.assertEqual(self._main(run), 0)
+        self.assertEqual(run.call_args.kwargs["dry_run"], True)
+        self.assertEqual(run.call_args.kwargs["backlog"], False)
+        self.assertEqual(run.call_args.args[1], "me@example.com")
+
+    def test_busy_exits_zero_and_errors_exit_two(self):
+        self.assertEqual(self._main(mock.MagicMock(side_effect=autosort.Busy("busy"))), 0)
+        self.assertEqual(self._main(mock.MagicMock(side_effect=ValueError("bad"))), 2)
 
 
 if __name__ == "__main__":
