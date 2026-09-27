@@ -342,7 +342,11 @@ def move_uid(conn, uid: str, destination: str) -> None:
 
 
 def classify(row: dict, rules: dict[str, str] | None = None) -> tuple[str, str]:
-    """Return (inbox/social/other, short reason). Protected topics win."""
+    """Return (category, short reason). Protected topics win.
+
+    The category is "inbox" or one of rulepacks.CATEGORIES (social, news,
+    promotions, notifications, receipts, cc).
+    """
     sender = row["sender"].lower()
     subject = row["subject"]
     matched = row.get("source_matches")
