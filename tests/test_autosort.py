@@ -279,6 +279,73 @@ class RunTests(AutosortTestCase):
         self.assertIn("Cannot create INBOX.News", " ".join(result.skipped))
         self.assertEqual(len(box.folders["INBOX"]), 1)
 
+    def test_failed_move_is_skipped_and_retried_next_run(self):
+        box = FakeMailbox()
+        box.add("INBOX", sender="writer@substack.com", subject="Issue A", message_id="<fm1@x>")
+        box.add("INBOX", sender="writer2@substack.com", subject="Issue B", message_id="<fm2@x>")
+        real_move_uid = triage.move_uid
+        calls = {"n": 0}
+
+        def fake_move_uid(conn, uid, destination):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise ValueError("boom")
+            return real_move_uid(conn, uid, destination)
+
+        with mock.patch.object(triage, "move_uid", side_effect=fake_move_uid):
+            result = autosort.run(box, A, now=NOW)
+        self.assertEqual(result.moved, 1)
+        self.assertIn("boom", " ".join(result.skipped))
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 0)
+
+        with mock.patch.object(triage, "move_uid", side_effect=fake_move_uid):
+            second = autosort.run(box, A, now=NOW)
+        self.assertEqual(second.moved, 1)
+
+    def test_missing_move_and_uidplus_raises_before_any_moves(self):
+        box = FakeMailbox(capabilities=("IMAP4REV1",))
+        box.add("INBOX", sender="writer@substack.com", subject="Issue", message_id="<mv1@x>")
+        with self.assertRaisesRegex(ValueError, "MOVE or UIDPLUS for auto-sort"):
+            autosort.run(box, A, now=NOW)
+        self.assertEqual(len(box.folders["INBOX"]), 1)
+        result = autosort.run(box, A, dry_run=True, now=NOW)
+        self.assertEqual([p["folder"] for p in result.planned], ["INBOX.News"])
+
+    def test_dry_run_previews_whole_inbox_before_first_real_run(self):
+        sortstore.update_settings(A, started_at=None)
+        box = FakeMailbox()
+        box.add("INBOX", sender="writer@substack.com", subject="Old issue",
+                message_id="<pv1@x>", received=datetime(2026, 8, 1, tzinfo=timezone.utc))
+        result = autosort.run(box, A, dry_run=True, now=NOW)
+        self.assertEqual([p["folder"] for p in result.planned], ["INBOX.News"])
+        self.assertIsNone(sortstore.get_settings(A)["started_at"])
+        self.assertEqual(sortstore.rules(A), {})
+        self.assertIsNone(sortstore.get_state(A, "INBOX"))
+        self.assertIsNone(sortstore.get_state(A, "sent:Sent"))
+        self.assertEqual(sortstore.moves(A), [])
+        self.assertEqual(sortstore.reviews(A), [])
+
+    def test_dry_run_previews_sent_trust_without_saving(self):
+        box = FakeMailbox()
+        box.add("Sent", sender=A, subject="Hi", to="friend@x.test")
+        box.add("INBOX", sender="friend@x.test", subject="Newsletter", message_id="<pv2@x>",
+                extra=NEWS)
+        result = autosort.run(box, A, dry_run=True, now=NOW)
+        self.assertEqual(result.trusted, 1)
+        self.assertEqual([p["folder"] for p in result.planned], [])
+        self.assertEqual(sortstore.rules(A), {})
+
+    def test_dry_run_lists_ai_pending_without_calling_model(self):
+        sortstore.update_settings(A, ai_model="local")
+        box = FakeMailbox()
+        box.add("INBOX", sender="hello@shop.test", subject="Hello", message_id="<pv3@x>")
+        fake = FakeLiteLLM([])
+        with mock.patch.object(ai_sort, "load_model", return_value=CFG):
+            result = autosort.run(box, A, now=NOW, dry_run=True, litellm=fake)
+        self.assertEqual(result.ai_pending, ["hello@shop.test"])
+        self.assertEqual(sortstore.reviews(A), [])
+        self.assertEqual(sortstore.rules(A), {})
+
 
 if __name__ == "__main__":
     unittest.main()

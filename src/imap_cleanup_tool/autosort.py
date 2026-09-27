@@ -91,14 +91,19 @@ def learn(conn, account: str, *, now: datetime) -> int:
     return changed
 
 
-def trust_sent(conn, account: str, *, now: datetime) -> int:
-    """Keep mail from people the user writes to in INBOX."""
+def trust_sent(conn, account: str, *, now: datetime, dry_run: bool = False):
+    """Keep mail from people the user writes to in INBOX.
+
+    In ``dry_run``, nothing is written to storage (no sender rule, no sync
+    state): the set of addresses that WOULD be trusted is returned instead of
+    a count, so a preview can add them to an in-memory rule set.
+    """
     folder = core.special_folder(conn, "\\Sent")
     if not folder:
-        return 0
+        return set() if dry_run else 0
     status, _ = conn.select(core._quote_mailbox(folder), readonly=True)
     if status != "OK":
-        return 0
+        return set() if dry_run else 0
     uidvalidity = core._read_uidvalidity(conn)
     key = f"sent:{folder}"
     state = sortstore.get_state(account, key)
@@ -111,7 +116,7 @@ def trust_sent(conn, account: str, *, now: datetime) -> int:
         last_uid = max(_search_uids(conn, "ALL") or [0])
     me = account.strip().lower()
     rules = sortstore.rules(account)
-    added = 0
+    added: set[str] = set()
     for block in _fetch_headers(conn, uids, "TO CC"):
         msg = message_from_bytes(block)
         for _, address in getaddresses(msg.get_all("To", []) + msg.get_all("Cc", [])):
@@ -120,11 +125,16 @@ def trust_sent(conn, account: str, *, now: datetime) -> int:
                 continue
             if rules.get(address, {}).get("source") in ("user", "learned", "sent"):
                 continue
+            if dry_run:
+                added.add(address)
+                continue
             if sortstore.save_rule(account, address, "inbox", "sent"):
                 rules[address] = {"category": "inbox", "source": "sent", "confidence": None}
-                added += 1
+                added.add(address)
+    if dry_run:
+        return added
     sortstore.set_state(account, key, uidvalidity, last_uid)
-    return added
+    return len(added)
 
 
 def undo_move(conn, account: str, move_id: int) -> str:
@@ -185,6 +195,7 @@ class RunResult:
     learned: int = 0
     trusted: int = 0
     ai_note: str = ""
+    ai_pending: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -275,24 +286,43 @@ def gmail_categories(conn, uids: set[str]) -> dict[str, str]:
 def run(conn, account: str, *, dry_run: bool = False, backlog: bool = False,
         ai_model: str | None = None, litellm=None,
         now: datetime | None = None) -> RunResult:
-    """One pass for one account. Moves only; never deletes."""
+    """One pass for one account. Moves only; never deletes.
+
+    ``dry_run`` is a pure preview: it never writes to storage (no
+    ``started_at``, no sender rule, no sync state, no move log, no AI
+    review, no AI call). It shows what a real run would do right now.
+    """
     now = now or datetime.now(timezone.utc)
     account = account.strip().lower()
     settings = sortstore.get_settings(account)
-    if not settings["started_at"]:
+    if not dry_run and not settings["started_at"]:
         settings = sortstore.update_settings(
             account, started_at=now.isoformat(timespec="seconds"))
     result = RunResult(run_id=sortstore.new_run_id(), dry_run=dry_run)
     with account_lock(account):
-        result.learned = learn(conn, account, now=now)
-        result.trusted = trust_sent(conn, account, now=now)
+        if dry_run:
+            result.learned = 0
+            sent_trust = trust_sent(conn, account, now=now, dry_run=True)
+            result.trusted = len(sent_trust)
+        else:
+            result.learned = learn(conn, account, now=now)
+            sent_trust = None
+            result.trusted = trust_sent(conn, account, now=now)
         _sort_inbox(conn, account, result, settings=settings, backlog=backlog,
-                    ai_model=ai_model, litellm=litellm)
+                    ai_model=ai_model, litellm=litellm, sent_trust=sent_trust)
     return result
 
 
 def _sort_inbox(conn, account: str, result: RunResult, *, settings: dict,
-                backlog: bool, ai_model: str | None, litellm) -> None:
+                backlog: bool, ai_model: str | None, litellm,
+                sent_trust: set[str] | None = None) -> None:
+    if not result.dry_run:
+        # A safe move needs MOVE or (COPY + STORE + UID EXPUNGE via UIDPLUS).
+        # Check once, before any work, so a run fails fast with a clear reason
+        # instead of raising on the first candidate message.
+        capabilities = triage._capabilities(conn)
+        if "MOVE" not in capabilities and "UIDPLUS" not in capabilities:
+            raise ValueError("The server needs MOVE or UIDPLUS for auto-sort.")
     status, _ = conn.select("INBOX", readonly=result.dry_run)
     if status != "OK":
         raise ValueError("Cannot open INBOX.")
@@ -308,13 +338,24 @@ def _sort_inbox(conn, account: str, result: RunResult, *, settings: dict,
         return
     last = 0 if (backlog or not state) else state["last_uid"]
     rows = fetch_rows(conn, [u for u in all_uids if u > last], account)
-    cutoff = datetime.fromisoformat(settings["started_at"])
+    # Before the first real run, started_at is unset; a dry run then previews
+    # the whole current inbox instead of filtering by a cutoff that doesn't
+    # exist yet.
+    cutoff = (datetime.fromisoformat(settings["started_at"])
+              if settings["started_at"] else None)
     moved_ids = sortstore.moved_message_ids(account)
     candidates = [r for r in rows
-                  if (backlog or r["received"] is None or r["received"] >= cutoff)
+                  if (backlog or cutoff is None or r["received"] is None
+                      or r["received"] >= cutoff)
                   and not (r["message_id"] and r["message_id"] in moved_ids)]
+    rules = sortstore.rules(account)
+    if sent_trust:
+        # Preview-only: mirror what a real trust_sent() would have saved.
+        for address in sent_trust:
+            rules.setdefault(address, {"category": "inbox", "source": "sent",
+                                       "confidence": None})
     ctx = sortchain.Context(
-        account=account, rules=sortstore.rules(account),
+        account=account, rules=rules,
         gmail=gmail_categories(conn, {r["uid"] for r in candidates}),
         ai_min_confidence=float(settings["ai_min_confidence"]))
     decisions: dict[str, sortchain.Decision] = {}
@@ -327,10 +368,12 @@ def _sort_inbox(conn, account: str, result: RunResult, *, settings: dict,
             unknown.setdefault(row["sender"].lower(), []).append(row)
     retry = _ai_layer(account, unknown, decisions, ctx, settings, ai_model,
                       litellm, result)
-    _move_all(conn, account, result, candidates, decisions)
+    failed = _move_all(conn, account, result, candidates, decisions)
     if not result.dry_run and all_uids:
-        # Senders beyond the AI budget are read again on the next run.
-        next_last = min(retry) - 1 if retry else max(all_uids)
+        # Senders beyond the AI budget, and messages whose move failed, are
+        # retried on the next run.
+        all_retry = [*retry, *failed]
+        next_last = min(all_retry) - 1 if all_retry else max(all_uids)
         sortstore.set_state(account, "INBOX", uidvalidity, max(next_last, last))
 
 
@@ -342,14 +385,18 @@ def _ai_layer(account: str, unknown: dict[str, list[dict]],
     if not unknown:
         return []
     name = ai_model if ai_model is not None else settings["ai_model"]
-    max_calls = int(settings["ai_max_calls"])
     try:
         cfg = ai_sort.load_model(name)
-        verdicts, errors = ai_sort.classify_senders(unknown, cfg, max_calls=max_calls,
-                                                    litellm=litellm)
     except ai_sort.Skip as exc:
         result.ai_note = str(exc)
         return []
+    if result.dry_run:
+        # Never call the model in a preview; show who WOULD be asked instead.
+        result.ai_pending = sorted(unknown)
+        return []
+    max_calls = int(settings["ai_max_calls"])
+    verdicts, errors = ai_sort.classify_senders(unknown, cfg, max_calls=max_calls,
+                                                litellm=litellm)
     result.skipped += [f"AI: {error}" for error in errors]
     for sender, verdict in verdicts.items():
         if verdict["confidence"] >= ctx.ai_min_confidence:
@@ -370,10 +417,12 @@ def _ai_layer(account: str, unknown: dict[str, list[dict]],
 
 
 def _move_all(conn, account: str, result: RunResult, candidates: list[dict],
-              decisions: dict[str, sortchain.Decision]) -> None:
+              decisions: dict[str, sortchain.Decision]) -> list[int]:
+    """Move each decided candidate; return the UIDs whose move failed."""
     delimiter = triage.hierarchy_delimiter(conn)
     known = set(core.list_folders(conn))
-    failed: set[str] = set()
+    failed_folders: set[str] = set()
+    failed_uids: list[int] = []
     for row in candidates:
         decision = decisions.get(row["uid"], sortchain.INBOX_DEFAULT)
         if decision.category == "inbox":
@@ -383,17 +432,26 @@ def _move_all(conn, account: str, result: RunResult, candidates: list[dict],
             "uid": row["uid"], "message_id": row["message_id"], "sender": row["sender"],
             "subject": row["subject"], "category": decision.category, "folder": target,
             "layer": decision.layer, "reason": decision.reason})
-        if result.dry_run or target in failed:
+        if result.dry_run or target in failed_folders:
             continue
         if target not in known:
             try:
                 core.create_folder(conn, target)
                 known.add(target)
             except (imaplib.IMAP4.error, OSError) as exc:
-                failed.add(target)
+                failed_folders.add(target)
                 result.skipped.append(f"Cannot create {target}: {exc}")
                 continue
-        triage.move_uid(conn, row["uid"], target)
+        try:
+            # One bad message (server hiccup, missing MOVE/UIDPLUS on this
+            # folder, etc.) must not stop the rest of the run or wedge the
+            # cursor; skip it and let the next run try again.
+            triage.move_uid(conn, row["uid"], target)
+        except (ValueError, imaplib.IMAP4.error, OSError) as exc:
+            failed_uids.append(int(row["uid"]))
+            result.skipped.append(f"Could not move UID {row['uid']} "
+                                  f"({row['subject']!r}): {exc}")
+            continue
         sortstore.log_move(account, result.run_id, message_id=row["message_id"],
                            uid=row["uid"], sender=row["sender"], subject=row["subject"],
                            source_folder="INBOX", target_folder=target,
@@ -402,3 +460,4 @@ def _move_all(conn, account: str, result: RunResult, candidates: list[dict],
         if not row["message_id"]:
             result.skipped.append(f"UID {row['uid']} has no Message-ID; this move "
                                   "cannot teach or be undone.")
+    return failed_uids
