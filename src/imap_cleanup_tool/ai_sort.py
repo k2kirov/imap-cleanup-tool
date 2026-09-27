@@ -79,10 +79,12 @@ def classify_senders(groups: dict[str, list[dict]], cfg: dict, *, max_calls: int
     verdicts: dict[str, dict] = {}
     errors: list[str] = []
     for sender in sorted(groups)[:max(0, int(max_calls))]:
+        # Build request outside try so payload/config errors surface immediately.
         kwargs = dict(base, messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": _payload(sender, groups[sender])}])
         try:
+            # Catch provider/network errors and bad replies; they must not stop the run.
             resp = ai._call_once(litellm, kwargs)
             usage = getattr(resp, "usage", None)
             prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)

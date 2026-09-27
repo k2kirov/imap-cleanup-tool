@@ -73,6 +73,12 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(list(verdicts), ["b@y.test"])
         self.assertTrue(errors[0].startswith("a@x.test:"))
 
+    def test_missing_model_in_cfg_raises_keyerror(self):
+        bad_cfg = {k: v for k, v in CFG.items() if k != "model"}
+        fake = FakeLiteLLM([])
+        with self.assertRaises(KeyError):
+            ai_sort.classify_senders(groups(), bad_cfg, max_calls=5, litellm=fake)
+
 
 class LoadModelTests(unittest.TestCase):
     def test_skips(self):
