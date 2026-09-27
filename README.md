@@ -114,6 +114,7 @@ Rather use pip on any platform? See [Install](#install).
 - [Rule expressions](#rule-expressions)
 - [Target file format](#target-file-format)
 - [Web interface](#web-interface)
+- [Auto-sort](#auto-sort)
 - [OAuth2 login (Microsoft modern auth)](#oauth2-login-microsoft-modern-auth)
 - [Folders vs labels, and moving](#folders-vs-labels-and-moving)
 - [Remote / headless server (SSH port forwarding)](#remote--headless-server-ssh-port-forwarding)
@@ -471,48 +472,6 @@ message body, or MIME attachment parts. The app never runs the source's reject,
 discard, mark-read, or file-into actions. A user must select and move each
 message. The app does not create a Junk or Trash suggestion from these hints.
 
-## Auto-sort
-
-Auto-sort files new INBOX mail into `INBOX.Social`, `INBOX.News`,
-`INBOX.Promotions`, `INBOX.Notifications`, `INBOX.Receipts` and `INBOX.CC`.
-It moves mail only. It never deletes and never uses Trash.
-
-How it decides, first match wins:
-
-1. Flagged mail and protected subjects (sign-in codes, passwords, calendar
-   replies, travel, medical, legal) stay in INBOX.
-2. Your own choices, and senders you moved back yourself.
-3. People you wrote to (read from your Sent folder) stay in INBOX.
-4. Rule packs and headers: receipts, social networks, automated notices,
-   mailing lists and newsletters, marketing mail, mail where you are only in Cc.
-5. Optional AI fallback for unknown senders (one call per sender, headers and
-   subjects only). Unsure answers wait in the Auto-sort tab for your choice.
-6. Everything else stays in INBOX.
-
-Teach it from any mail app: move a sorted message to another sort folder, or
-back to INBOX. The next run remembers that sender. Every move is logged and can
-be undone from the Auto-sort tab.
-
-Only mail received after the first run is sorted. Use `--backlog` once to sort
-older mail.
-
-`--dry-run` / Preview is a pure preview: it changes nothing (no moves, no saved rules or state) and makes no AI calls; senders that would need the AI are listed instead. Before the first real run, a preview shows what would happen to the whole current INBOX.
-
-Auto-sort needs a server with IMAP MOVE or UIDPLUS; without both, a real run stops with a clear error.
-
-If one move fails, auto-sort notes it, continues with the other messages, and tries that message again on the next run.
-
-If a message is found in the same folder category that the sender's rule already has, the rule is left unchanged (your own rules are never relabelled as learned).
-
-```bash
-imap-cleanup-tool --profile work --autosort --dry-run   # preview
-imap-cleanup-tool --profile work --autosort             # sort now
-imap-cleanup-tool --profile work --autosort --backlog   # include older mail
-```
-
-Rule data comes from inpector/sieve-filters (CC0), poli0981/proton-sieve-filters
-(CC0) and scrothers/sieve-filters (MIT). See `THIRD_PARTY_NOTICES.md`.
-
 ### Reports tab
 
 Every AI report or run saves a timestamped CSV (**per account**, in `ai_reports/`).
@@ -570,6 +529,50 @@ to each folder's **UIDVALIDITY** (the IMAP value that changes only if the server
 renumbers messages - folder recreated, mailbox migrated, ...); if it changes, the
 stale rows are dropped and headers are re-fetched. Stored locally in a small
 SQLite file (`header_cache.sqlite`) in your config directory.
+
+---
+
+## Auto-sort
+
+Auto-sort files new INBOX mail into `INBOX.Social`, `INBOX.News`,
+`INBOX.Promotions`, `INBOX.Notifications`, `INBOX.Receipts` and `INBOX.CC`.
+It moves mail only. It never deletes and never uses Trash.
+
+How it decides, first match wins:
+
+1. Flagged mail and protected subjects (sign-in codes, passwords, calendar
+   replies, travel, medical, legal) stay in INBOX.
+2. Your own choices, and senders you moved back yourself.
+3. People you wrote to (read from your Sent folder) stay in INBOX.
+4. Rule packs and headers: receipts, social networks, automated notices,
+   mailing lists and newsletters, marketing mail, mail where you are only in Cc.
+5. Optional AI fallback for unknown senders (one call per sender, headers and
+   subjects only). Unsure answers wait in the Auto-sort tab for your choice.
+6. Everything else stays in INBOX.
+
+Teach it from any mail app: move a sorted message to a different sort folder, or
+back to INBOX. The next run remembers that sender's new category. Every move is logged and can
+be undone from the Auto-sort tab.
+
+Only mail received after the first run is sorted. Use `--backlog` once to sort
+older mail.
+
+`--dry-run` / Preview is a pure preview: it changes nothing (no moves, no saved rules or state) and makes no AI calls; senders that would need the AI are listed instead. Before the first real run, a preview shows what would happen to the whole current INBOX.
+
+Auto-sort needs a server with IMAP MOVE or UIDPLUS; if the server supports neither, a real run stops with a clear error.
+
+If one move fails, auto-sort notes it, continues with the other messages, and tries that message again on the next run.
+
+When a message is found in the same category the sender's rule already has, the rule is left as it is (a rule you set yourself stays yours).
+
+```bash
+imap-cleanup-tool --profile work --autosort --dry-run   # preview
+imap-cleanup-tool --profile work --autosort             # sort now
+imap-cleanup-tool --profile work --autosort --backlog   # include older mail
+```
+
+Rule data comes from inpector/sieve-filters (CC0), poli0981/proton-sieve-filters
+(CC0) and scrothers/sieve-filters (MIT). See `THIRD_PARTY_NOTICES.md`.
 
 ---
 
