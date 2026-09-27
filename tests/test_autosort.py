@@ -1,5 +1,6 @@
 """Auto-sort runs against a multi-folder IMAP fake."""
 
+import imaplib
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -56,6 +57,14 @@ class LearnTests(AutosortTestCase):
         self.assertEqual(autosort.learn(box, A, now=NOW), 0)
         self.assertEqual(sortstore.rules(A), {})
 
+    def test_user_rule_provenance_kept_when_category_matches(self):
+        box = FakeMailbox(("INBOX", "INBOX.News", "INBOX.Promotions"))
+        box.add("INBOX", sender="n@brand.test", subject="s", message_id="<m4@x>")
+        self.log("INBOX.News", "<m4@x>")
+        sortstore.save_rule(A, "n@brand.test", "inbox", "user")
+        self.assertEqual(autosort.learn(box, A, now=NOW), 0)
+        self.assertEqual(sortstore.rules(A)["n@brand.test"]["source"], "user")
+
 
 class TrustSentTests(AutosortTestCase):
     def test_first_run_trusts_recipients_but_not_me(self):
@@ -110,6 +119,25 @@ class UndoTests(AutosortTestCase):
             self.log("INBOX.News", mid, run="runX")
         self.assertEqual(autosort.undo_run(box, A, "runX"), {"undone": 2, "errors": []})
         self.assertEqual(len(box.folders["INBOX"]), 2)
+
+    def test_undo_run_reports_imap_errors_without_crashing(self):
+        box = FakeMailbox(("INBOX", "INBOX.News"))
+        for mid in ("<e1@x>", "<e2@x>"):
+            box.add("INBOX.News", sender="n@brand.test", subject="s", message_id=mid)
+            self.log("INBOX.News", mid, run="runY")
+        real_move_uid = triage.move_uid
+
+        def fake_move_uid(conn, uid, destination):
+            fake_move_uid.calls += 1
+            if fake_move_uid.calls == 1:
+                raise imaplib.IMAP4.error("down")
+            return real_move_uid(conn, uid, destination)
+
+        fake_move_uid.calls = 0
+        with mock.patch.object(triage, "move_uid", side_effect=fake_move_uid):
+            result = autosort.undo_run(box, A, "runY")
+        self.assertEqual(result["undone"], 1)
+        self.assertEqual(len(result["errors"]), 1)
 
 
 if __name__ == "__main__":

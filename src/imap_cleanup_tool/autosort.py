@@ -6,6 +6,7 @@ docs/superpowers/specs/2026-09-25-autosort-core-loop-design.md
 
 from __future__ import annotations
 
+import imaplib
 from datetime import datetime, timedelta
 from email import message_from_bytes
 from email.utils import getaddresses
@@ -76,7 +77,7 @@ def learn(conn, account: str, *, now: datetime) -> int:
             continue
         category = "inbox" if found == "INBOX" else sort_folders[found]
         rule = current.get(move["sender"])
-        if rule and rule["category"] == category and rule["source"] == "learned":
+        if rule and rule["category"] == category:
             continue
         if sortstore.save_rule(account, move["sender"], category, "learned"):
             current[move["sender"]] = {"category": category, "source": "learned",
@@ -148,6 +149,6 @@ def undo_run(conn, account: str, run_id: str) -> dict:
         try:
             undo_move(conn, account, move["id"])
             undone += 1
-        except ValueError as exc:
+        except (ValueError, imaplib.IMAP4.error, OSError) as exc:
             errors.append(f"{move['subject']}: {exc}")
     return {"undone": undone, "errors": errors}
