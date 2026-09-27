@@ -345,6 +345,19 @@ class RunTests(AutosortTestCase):
         self.assertEqual(autosort.learn(box, A, now=NOW), 1)
         self.assertEqual(sortstore.rules(A)["writer@substack.com"]["category"], "inbox")
 
+    def test_sender_awaiting_review_is_not_asked_again(self):
+        sortstore.update_settings(A, ai_model="local")
+        sortstore.add_review(A, "maybe@odd.test", "news", 0.4, "unsure")
+        box = FakeMailbox()
+        box.add("INBOX", sender="maybe@odd.test", subject="Hi", message_id="<rv1@x>")
+        fake = FakeLiteLLM([])
+        with mock.patch.object(ai_sort, "load_model", return_value=CFG):
+            result = autosort.run(box, A, now=NOW, litellm=fake)
+        self.assertEqual(fake.calls, [])
+        self.assertEqual(result.moved, 0)
+        self.assertEqual(len(box.folders["INBOX"]), 1)
+        self.assertEqual(sortstore.get_state(A, "INBOX")["last_uid"], 1)
+
     def test_gmail_category_and_slash_delimiter(self):
         box = FakeMailbox(capabilities=("IMAP4REV1", "MOVE", "X-GM-EXT-1"), delimiter="/")
         uid = box.add("INBOX", sender="hello@shop.test", subject="Hello", message_id="<g1@x>")

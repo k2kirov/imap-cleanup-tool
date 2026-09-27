@@ -401,6 +401,13 @@ def _sort_inbox(conn, account: str, result: RunResult, *, settings: dict,
             decisions[row["uid"]] = decision
         elif row["sender"] != "(no sender)":
             unknown.setdefault(row["sender"].lower(), []).append(row)
+    # An unsure AI answer waits for the user's choice in the review list; do
+    # not ask (and pay) again, and do not hold the cursor back for it.
+    waiting = {r["sender"] for r in sortstore.reviews(account)} & set(unknown)
+    if waiting:
+        unknown = {s: rows for s, rows in unknown.items() if s not in waiting}
+        result.skipped.append(f"{len(waiting)} sender(s) wait for your review and "
+                              "stay in INBOX.")
     retry = _ai_layer(account, unknown, decisions, ctx, settings, ai_model,
                       litellm, result)
     failed = _move_all(conn, account, result, candidates, decisions)
