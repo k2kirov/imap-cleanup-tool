@@ -34,8 +34,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import (__version__, ai, core, llm, notifications, oauth, profiles,
-               scheduler, spamstore, triage)
+from . import (__version__, ai, autosort, core, llm, notifications, oauth, profiles,
+               scheduler, sortstore, spamstore, triage)
 from .rules import RuleError, compile_search, node_from_dict
 from .targets import parse_targets_text
 
@@ -411,6 +411,27 @@ def create_app():
         sender: str
         category: str = "inbox"
 
+    class AutosortRunIn(BaseModel):
+        sid: str
+        dry_run: bool = True
+        backlog: bool = False
+
+    class AutosortUndoIn(BaseModel):
+        sid: str
+        move_id: int = 0
+        run_id: str = ""
+
+    class AutosortSettingsIn(BaseModel):
+        sid: str
+        ai_model: str = ""
+        ai_min_confidence: float = 0.8
+        ai_max_calls: int = 50
+
+    class AutosortReviewIn(BaseModel):
+        sid: str
+        sender: str
+        category: str
+
     class AIReportIn(Match):
         sid: str
         folders: list[str] = Field(default_factory=lambda: ["INBOX"])
@@ -576,6 +597,7 @@ def create_app():
         ai_report_only: bool = False  # build report, delete nothing (emailed if on)
         ai_flag_spam: bool = False    # report confirmed senders as spam (1 msg -> Junk)
         ai_check_spam: bool = True    # skip already-saved spam from the LLM
+        autosort: bool = False        # run --autosort instead of a cleanup
 
     # ----- helpers --------------------------------------------------------- #
     def _session(sid: str) -> "Session":
@@ -914,6 +936,80 @@ def create_app():
         sess = _session(body.sid)
         triage.forget_sender(sess.user, body.sender)
         return {"sender": body.sender.lower(), "forgotten": True}
+
+    @app.post("/api/autosort/run")
+    def autosort_run(body: AutosortRunIn) -> dict[str, Any]:
+        """One auto-sort pass for the connected account. Dry run by default."""
+        sess = _session(body.sid)
+        if sess.run and sess.run.status == "running":
+            raise HTTPException(409, "An operation is running; try again later.")
+        with sess.lock:
+            try:
+                result = autosort.run(sess.conn, sess.user, dry_run=body.dry_run,
+                                      backlog=body.backlog)
+                if not body.dry_run:
+                    sess.folders = _folder_dicts(sess.conn)
+            except autosort.Busy as exc:
+                raise HTTPException(409, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            except (OSError, core.imaplib.IMAP4.error) as exc:
+                raise HTTPException(502, f"IMAP error: {exc}") from exc
+        return result.to_dict()
+
+    @app.get("/api/autosort/state/{sid}")
+    def autosort_state(sid: str) -> dict[str, Any]:
+        sess = _session(sid)
+        return {"settings": sortstore.get_settings(sess.user),
+                "moves": sortstore.moves(sess.user, 100),
+                "review": sortstore.reviews(sess.user)}
+
+    @app.post("/api/autosort/undo")
+    def autosort_undo(body: AutosortUndoIn) -> dict[str, Any]:
+        sess = _session(body.sid)
+        if not body.move_id and not body.run_id:
+            raise HTTPException(400, "Choose a move or a run to undo.")
+        with sess.lock:
+            try:
+                if body.move_id:
+                    autosort.undo_move(sess.conn, sess.user, body.move_id)
+                    result = {"undone": 1, "errors": []}
+                else:
+                    result = autosort.undo_run(sess.conn, sess.user, body.run_id)
+                sess.folders = _folder_dicts(sess.conn)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            except (OSError, core.imaplib.IMAP4.error) as exc:
+                raise HTTPException(502, f"IMAP error: {exc}") from exc
+        return result
+
+    @app.post("/api/autosort/settings")
+    def autosort_settings(body: AutosortSettingsIn) -> dict[str, Any]:
+        sess = _session(body.sid)
+        name = body.ai_model.strip()
+        if name:
+            info = next((m for m in llm.list_models() if m["name"] == name), None)
+            if info is None:
+                raise HTTPException(400, f"Model {name!r} not found.")
+            if info["encrypted"]:
+                raise HTTPException(400, "Encrypted model configs can't run "
+                                         "unattended - use a non-encrypted one.")
+        try:
+            return sortstore.update_settings(
+                sess.user, ai_model=name, ai_min_confidence=body.ai_min_confidence,
+                ai_max_calls=body.ai_max_calls)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/autosort/review")
+    def autosort_review(body: AutosortReviewIn) -> dict[str, Any]:
+        sess = _session(body.sid)
+        try:
+            sortstore.save_rule(sess.user, body.sender, body.category, "user")
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        sortstore.clear_review(sess.user, body.sender)
+        return {"sender": body.sender.strip().lower(), "category": body.category}
 
     @app.post("/api/disconnect/{sid}")
     def disconnect(sid: str) -> dict[str, Any]:
@@ -2009,6 +2105,15 @@ def create_app():
             args += ["--notify-profile", nprof]
         for folder in (body.folders or ["INBOX"]):
             args += ["--folder", folder]
+        if body.autosort:
+            args += ["--autosort", "--yes"]
+            try:
+                sched = scheduler.build_schedule(
+                    body.kind, time=body.time, date=body.date,
+                    minutes=body.minutes, day=body.day)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            return scheduler.Job(name=name, args=args, schedule=sched, label=label)
         if body.ai_cleanup:
             args += ["--ai-cleanup",
                      "--ai-threshold", str(body.ai_threshold),

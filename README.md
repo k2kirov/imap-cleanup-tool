@@ -109,6 +109,7 @@ Rather use pip on any platform? See [Install](#install).
 - [Quick start - web interface (with AI)](#quick-start---web-interface-with-ai)
 - [Quick start - command line](#quick-start---command-line)
 - [AI Cleanup](#ai-cleanup)
+- [Auto-sort](#auto-sort)
 - [Install](#install)
 - [Command-line usage](#command-line-usage)
 - [Rule expressions](#rule-expressions)
@@ -531,6 +532,50 @@ SQLite file (`header_cache.sqlite`) in your config directory.
 
 ---
 
+## Auto-sort
+
+Auto-sort files new INBOX mail into `INBOX.Social`, `INBOX.News`,
+`INBOX.Promotions`, `INBOX.Notifications`, `INBOX.Receipts` and `INBOX.CC`.
+It moves mail only. It never deletes and never uses Trash.
+
+How it decides, first match wins:
+
+1. Flagged mail and protected subjects (sign-in codes, passwords, calendar
+   replies, travel, medical, legal) stay in INBOX.
+2. Your own choices, and senders you moved back yourself.
+3. People you wrote to (read from your Sent folder) stay in INBOX.
+4. Rule packs and headers: receipts, social networks, automated notices,
+   mailing lists and newsletters, marketing mail, mail where you are only in Cc.
+5. Optional AI fallback for unknown senders (one call per sender, headers and
+   subjects only). Unsure answers wait in the Auto-sort tab for your choice.
+6. Everything else stays in INBOX.
+
+Teach it from any mail app: move a sorted message to a different sort folder, or
+back to INBOX. The next run remembers that sender's new category. Every move is logged and can
+be undone from the Auto-sort tab.
+
+Only mail received after the first run is sorted. Use `--backlog` once to sort
+older mail.
+
+`--dry-run` / Preview is a pure preview: it changes nothing (no moves, no saved rules or state) and makes no AI calls; senders that would need the AI are listed instead. Before the first real run, a preview shows what would happen to the whole current INBOX.
+
+Auto-sort needs a server with IMAP MOVE or UIDPLUS; if the server supports neither, a real run stops with a clear error.
+
+If one move fails, auto-sort notes it, continues with the other messages, and tries that message again on the next run.
+
+When a message is found in the same category the sender's rule already has, the rule is left as it is (a rule you set yourself stays yours).
+
+```bash
+imap-cleanup-tool --profile work --autosort --dry-run   # preview
+imap-cleanup-tool --profile work --autosort             # sort now
+imap-cleanup-tool --profile work --autosort --backlog   # include older mail
+```
+
+Rule data comes from inpector/sieve-filters (CC0), poli0981/proton-sieve-filters
+(CC0) and scrothers/sieve-filters (MIT). See `THIRD_PARTY_NOTICES.md`.
+
+---
+
 ## Install
 
 Pick your platform. **Windows** and **Linux** have a one-click download that
@@ -700,6 +745,8 @@ python -m unittest discover -s tests -v
 | `--run-job NAME` | Run a saved scheduled job by name (used by the OS scheduler). |
 | `--profile NAME` | Load host/user/password from a saved, non-encrypted profile. |
 | `--notify-profile NAME` | Send the completion email from this saved (non-encrypted) SMTP profile instead of the active one. Used by scheduled jobs. |
+| `--autosort` | Sort new INBOX mail into Social, News, Promotions, Notifications, Receipts and CC folders. Moves only. Combine with `--dry-run` to preview. |
+| `--backlog` | With `--autosort`: also sort mail received before auto-sort first ran. |
 
 Examples:
 

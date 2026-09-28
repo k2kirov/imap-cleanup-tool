@@ -162,6 +162,7 @@ tailwind.config = { theme: { extend: {
   <div class="hidden sm:flex max-w-[1600px] mx-auto px-4 sm:px-6 pt-1.5 pb-3 gap-2">
     <div class="tab active" data-tab="cleanup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Cleanup</div>
     <div class="tab" data-tab="triage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="m8 12 2 2 4-4"/></svg>Inbox sort</div>
+    <div class="tab" data-tab="autosort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l-3-3M21 17H8l3 3"/></svg>Auto-sort</div>
     <div class="tab" data-tab="scheduling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Scheduling</div>
     <div class="tab" data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>Reports</div>
     <div class="tab" data-tab="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/></svg>LLM</div>
@@ -185,6 +186,7 @@ tailwind.config = { theme: { extend: {
     <nav class="flex flex-col gap-1">
       <button class="navitem active" data-tab="cleanup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Cleanup</button>
       <button class="navitem" data-tab="triage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="m8 12 2 2 4-4"/></svg>Inbox sort</button>
+      <button class="navitem" data-tab="autosort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l-3-3M21 17H8l3 3"/></svg>Auto-sort</button>
       <button class="navitem" data-tab="scheduling"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Scheduling</button>
       <button class="navitem" data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>Reports</button>
       <button class="navitem" data-tab="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/></svg>LLM</button>
@@ -589,20 +591,20 @@ tailwind.config = { theme: { extend: {
   <section class="bg-panel border border-line rounded-xl p-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div><h2 class="font-display text-xl font-semibold text-brand-light">Sort your inbox</h2>
-        <p class="text-muted text-sm mt-2 max-w-2xl">Scan message headers. Review each suggestion. Source rule names help explain matches. Move one message to Social or Other. Unselected mail stays in INBOX.</p></div>
+        <p class="text-muted text-sm mt-2 max-w-2xl">Scan message headers. Review each suggestion. Source rule names help explain matches. Move one message to a sort folder. Unselected mail stays in INBOX.</p></div>
       <button id="triageScan" type="button" class="px-4 py-2 rounded-lg bg-brand text-ink font-semibold hover:bg-brand-light">Scan inbox</button>
     </div>
     <p id="triageStatus" class="text-sm text-muted mt-4">Connect in Cleanup, then scan the inbox.</p>
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 text-sm">
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageTotal" class="block text-xl text-cream">—</strong><span class="text-muted">Inbox messages</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageSocial" class="block text-xl text-cream">—</strong><span class="text-muted">Social suggestions</span></div>
-      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageOther" class="block text-xl text-cream">—</strong><span class="text-muted">Other suggestions</span></div>
+      <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageOther" class="block text-xl text-cream">—</strong><span class="text-muted">Other folder suggestions</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageInbox" class="block text-xl text-cream">—</strong><span class="text-muted">Stay in inbox</span></div>
       <div class="bg-panel2 rounded-lg border border-line p-3"><strong id="triageReview" class="block text-xl text-cream">—</strong><span class="text-muted">Review hints</span></div>
     </div>
     <div class="flex flex-wrap gap-3 mt-5">
       <label class="text-sm text-muted">Show
-        <select id="triageFilter" class="field mt-1"><option value="suggested">Folder suggestions</option><option value="review">Review hints</option><option value="all">All messages</option><option value="social">Social</option><option value="other">Other</option><option value="inbox">Inbox</option></select>
+        <select id="triageFilter" class="field mt-1"><option value="suggested">Folder suggestions</option><option value="review">Review hints</option><option value="all">All messages</option><option value="social">Social</option><option value="news">News</option><option value="promotions">Promotions</option><option value="notifications">Notifications</option><option value="receipts">Receipts</option><option value="cc">CC</option><option value="inbox">Inbox</option></select>
       </label>
       <label class="text-sm text-muted flex-1 min-w-[180px]">Find sender, subject, or source group
         <input id="triageSearch" class="field mt-1" type="search" placeholder="Search scanned messages">
@@ -616,6 +618,43 @@ tailwind.config = { theme: { extend: {
     <h2 class="font-display font-semibold text-brand-light">Your match rules</h2>
     <p class="text-sm text-muted mt-2">Moves from consistent senders teach future scans by default. Clear the checkbox for a one-time move. A protected subject still stays in the inbox.</p>
     <div id="triageRules" class="text-sm text-muted mt-4">No match rules yet.</div>
+  </section>
+</div>
+
+<!-- ============================ AUTO-SORT TAB ============================ -->
+<div id="tab-autosort" class="hidden space-y-5">
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div><h2 class="font-display text-xl font-semibold text-brand-light">Auto-sort</h2>
+        <p class="text-muted text-sm mt-2 max-w-2xl">Sort new INBOX mail into Social, News, Promotions, Notifications, Receipts and CC. Nothing is deleted. Move a message back in any mail app, and the tool remembers that sender.</p></div>
+      <div class="flex flex-wrap gap-2">
+        <button id="autosortPreview" type="button" class="px-4 py-2 rounded-lg border border-line text-cream hover:border-brand">Preview</button>
+        <button id="autosortRunNow" type="button" class="px-4 py-2 rounded-lg border border-line text-cream hover:border-brand">Run now</button>
+        <button id="autosortEnable" type="button" class="px-4 py-2 rounded-lg bg-brand text-ink font-semibold hover:bg-brand-light">Turn on (every 15 min)</button>
+      </div>
+    </div>
+    <p id="autosortStatus" class="text-sm text-muted mt-4">Connect in Cleanup first.</p>
+    <div id="autosortPlan" class="text-sm mt-3"></div>
+  </section>
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <div class="flex items-center justify-between gap-3"><h2 class="font-display font-semibold text-brand-light">Recent moves</h2>
+      <button id="autosortUndoRun" type="button" class="text-xs text-muted hover:text-cream">Undo last run</button></div>
+    <div id="autosortMoves" class="text-sm text-muted mt-4">No moves yet.</div>
+  </section>
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <h2 class="font-display font-semibold text-brand-light">AI review</h2>
+    <p class="text-sm text-muted mt-2">The AI was not sure about these senders. Pick a folder once. The tool remembers it.</p>
+    <div id="autosortReview" class="text-sm text-muted mt-4">Nothing to review.</div>
+  </section>
+  <section class="bg-panel border border-line rounded-xl p-5">
+    <h2 class="font-display font-semibold text-brand-light">AI fallback</h2>
+    <p class="text-sm text-muted mt-2">Used only for senders no rule covers. One call per sender. Only sender, subjects and header flags are sent.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+      <label class="text-xs text-muted">Model <select id="autosortModel" class="field mt-1"></select></label>
+      <label class="text-xs text-muted">Minimum confidence <input id="autosortConfidence" type="number" min="0.05" max="1" step="0.05" class="field mt-1" value="0.8"></label>
+      <label class="text-xs text-muted">AI calls per run <input id="autosortMaxCalls" type="number" min="0" max="500" class="field mt-1" value="50"></label>
+    </div>
+    <button id="autosortSaveSettings" type="button" class="mt-3 px-4 py-2 rounded-lg border border-line text-cream hover:border-brand">Save AI settings</button>
   </section>
 </div>
 
@@ -1930,8 +1969,72 @@ async function loadJobs(){
   }catch(e){ $('jobsList').innerHTML='<p class="text-danger text-xs">'+e.message+'</p>'; }
 }
 
+/* ---------- Auto-sort ---------- */
+let autosortLastRun='';
+function renderAutosortPlan(r){
+  const verb=r.dry_run?'Would move':'Moved';
+  const items=(r.planned||[]).slice(0,100).map(p=>'<div class="border-b border-line/70 py-2"><span class="text-cream">'+escapeHtml(p.subject||'(no subject)')+'</span> <span class="text-muted text-xs">'+escapeHtml(p.sender)+'</span><div class="text-xs text-muted">'+verb+' to '+escapeHtml(p.folder)+' · '+escapeHtml(p.layer)+': '+escapeHtml(p.reason)+'</div></div>').join('');
+  const noteLines=(r.skipped||[]).concat(r.ai_note?['AI: '+r.ai_note]:[]).map(n=>escapeHtml(n));
+  // A dry run makes no AI calls; surface which senders it would have asked about instead.
+  if((r.ai_pending||[]).length){ noteLines.push('Would ask the AI about '+r.ai_pending.length+' sender(s): '+r.ai_pending.map(escapeHtml).join(', ')); }
+  const notes=noteLines.map(n=>'<div class="text-warn text-xs mt-1">'+n+'</div>').join('');
+  $('autosortPlan').innerHTML=(items||'<p class="text-muted">Nothing to move.</p>')+notes;
+}
+async function loadAutosort(){
+  if(!SID){ $('autosortStatus').textContent='Connect in Cleanup first.'; return; }
+  try{
+    const d=await api('/api/autosort/state/'+encodeURIComponent(SID),null,'GET');
+    $('autosortConfidence').value=d.settings.ai_min_confidence;
+    $('autosortMaxCalls').value=d.settings.ai_max_calls;
+    const models=(await (await fetch('/api/llm-models')).json()).models||[];
+    $('autosortModel').innerHTML='<option value="">No AI (rules only)</option>'+models.filter(m=>!m.encrypted).map(m=>'<option value="'+escapeHtml(m.name)+'" '+(m.name===d.settings.ai_model?'selected':'')+'>'+escapeHtml(m.name+' ('+m.model+')')+'</option>').join('');
+    $('autosortStatus').textContent=d.settings.started_at?'Sorting mail received since '+d.settings.started_at+'.':'Not started. Click Preview first.';
+    autosortLastRun=d.moves.length?d.moves[0].run_id:'';
+    $('autosortMoves').innerHTML=d.moves.length?d.moves.map(m=>'<div class="flex items-center justify-between gap-3 border-b border-line py-2"><span class="break-all"><span class="text-cream">'+escapeHtml(m.subject||'(no subject)')+'</span> <small class="text-muted">'+escapeHtml(m.sender)+' → '+escapeHtml(m.target_folder)+' ('+escapeHtml(m.layer)+')</small></span>'+(m.undone_at?'<small class="text-muted">Undone</small>':'<button class="autosortUndo text-brand-light text-xs hover:underline" data-id="'+m.id+'" type="button">Undo</button>')+'</div>').join(''):'No moves yet.';
+    $('autosortMoves').querySelectorAll('.autosortUndo').forEach(b=>{ b.onclick=()=>autosortUndo({move_id:Number(b.dataset.id)}); });
+    $('autosortReview').innerHTML=d.review.length?d.review.map((r,i)=>'<div class="flex flex-wrap items-center justify-between gap-3 border-b border-line py-2"><span class="break-all text-cream">'+escapeHtml(r.sender)+' <small class="text-muted">AI: '+escapeHtml(r.category)+' ('+Math.round(r.confidence*100)+'%) '+escapeHtml(r.reason)+'</small></span><span class="flex gap-2"><select class="field text-xs autosortPick" data-i="'+i+'"><option value="inbox">Inbox</option>'+Object.entries(SORT_FOLDERS).map(([k,v])=>'<option value="'+k+'" '+(k===r.category?'selected':'')+'>'+v+'</option>').join('')+'</select><button class="autosortPickSave text-brand-light text-xs hover:underline" data-i="'+i+'" type="button">Save</button></span></div>').join(''):'Nothing to review.';
+    $('autosortReview').querySelectorAll('.autosortPickSave').forEach(b=>{ b.onclick=async()=>{
+      const r=d.review[Number(b.dataset.i)], category=$('autosortReview').querySelector('.autosortPick[data-i="'+b.dataset.i+'"]').value;
+      try{ await api('/api/autosort/review',{sid:SID,sender:r.sender,category}); await loadAutosort(); }catch(e){ toastErr(e.message); }
+    }; });
+  }catch(e){ $('autosortStatus').textContent='Could not load auto-sort: '+e.message; }
+}
+async function autosortRun(dryRun){
+  if(!SID){ toastErr('Connect in Cleanup first.'); return; }
+  $('autosortStatus').textContent=dryRun?'Previewing…':'Sorting…';
+  try{ const r=await api('/api/autosort/run',{sid:SID,dry_run:dryRun}); renderAutosortPlan(r);
+    if(!dryRun) toast('Moved '+r.moved+' message(s).','border-ok/50 bg-ok/15 text-ok');
+    await loadAutosort(); }
+  catch(e){ $('autosortStatus').textContent='Auto-sort failed: '+e.message; toastErr(e.message); }
+}
+async function autosortUndo(body){
+  try{ const r=await api('/api/autosort/undo',Object.assign({sid:SID},body));
+    toast('Moved '+r.undone+' message(s) back to INBOX.','border-ok/50 bg-ok/15 text-ok');
+    (r.errors||[]).forEach(e=>toastErr(e)); await loadAutosort(); }
+  catch(e){ toastErr(e.message); }
+}
+if($('autosortPreview')) $('autosortPreview').onclick=()=>autosortRun(true);
+if($('autosortRunNow')) $('autosortRunNow').onclick=async()=>{
+  if(!(await confirmDialog({title:'Sort INBOX now?',message:'Move matching new INBOX mail to the sort folders. Nothing is deleted, and every move can be undone.',okText:'Sort now'}))) return;
+  autosortRun(false);
+};
+if($('autosortUndoRun')) $('autosortUndoRun').onclick=()=>{ if(autosortLastRun) autosortUndo({run_id:autosortLastRun}); else toastErr('No run to undo.'); };
+if($('autosortSaveSettings')) $('autosortSaveSettings').onclick=async()=>{
+  try{ await api('/api/autosort/settings',{sid:SID,ai_model:$('autosortModel').value,
+    ai_min_confidence:Number($('autosortConfidence').value),ai_max_calls:Number($('autosortMaxCalls').value)});
+    toast('AI settings saved.','border-ok/50 bg-ok/15 text-ok'); }
+  catch(e){ toastErr(e.message); }
+};
+if($('autosortEnable')) $('autosortEnable').onclick=async()=>{
+  if(!connectedProfile){ toastErr('Connect with a saved, non-encrypted profile to schedule auto-sort.'); return; }
+  if(!(await confirmDialog({title:'Turn on auto-sort?',message:'Install a system task that sorts new INBOX mail every 15 minutes with profile '+connectedProfile+'. Run Preview first to check the result.',okText:'Turn on'}))) return;
+  try{ const d=await api('/api/jobs/install',{name:'autosort',profile:connectedProfile,kind:'interval',minutes:15,autosort:true});
+    toast('Auto-sort is on.','border-ok/50 bg-ok/15 text-ok'); $('autosortStatus').textContent=d.message||'Auto-sort is on.'; }
+  catch(e){ toastErr(e.message); }
+};
+
 /* ---------- events ---------- */
-const TABS=['cleanup','triage','scheduling','report','llm','notifications','spam'];
+const TABS=['cleanup','triage','autosort','scheduling','report','llm','notifications','spam'];
 function switchTab(name){
   if(!TABS.includes(name)) name='cleanup';
   try{ localStorage.setItem('icw_tab', name); }catch(_){}
@@ -1940,6 +2043,7 @@ function switchTab(name){
   if(name==='scheduling'){ populateJobProfiles(); updateSchedInputs(); loadJobs(); loadLLMModels(); loadSmtp().then(()=>{ populateJobSmtp(); updateJobSummary(); }); updateJobSummary(); }
   if(name==='report'){ loadAiReports(); }
   if(name==='triage' && SID && !triagePreview){ loadTriage(); }
+  if(name==='autosort'){ loadAutosort(); }
   if(name==='llm'){ loadLLMModels(); }
   if(name==='notifications'){ loadSmtp(); }
   if(name==='spam'){ spamState.offset=0; loadSpam(); }
@@ -2173,14 +2277,16 @@ if($('btnReportZip')) $('btnReportZip').onclick=()=>downloadReportsZip(Array.fro
 if($('btnReportDelete')) $('btnReportDelete').onclick=()=>deleteReports(Array.from(reportSel));
 
 /* ---------- Inbox sort: message-level preview and checked moves ---------- */
+const SORT_FOLDERS={social:'Social',news:'News',promotions:'Promotions',notifications:'Notifications',receipts:'Receipts',cc:'CC'};
 let triagePreview=null;
 function renderTriage(){
   const rows=triagePreview?.rows||[];
-  const counts={social:0,other:0,inbox:0};
+  const counts={social:0,inbox:0};
   rows.forEach(r=>{ counts[r.category]=(counts[r.category]||0)+1; });
+  const otherCount=rows.filter(r=>r.category!=='inbox'&&r.category!=='social').length;
   $('triageTotal').textContent=triagePreview?rows.length:'—';
   $('triageSocial').textContent=triagePreview?counts.social:'—';
-  $('triageOther').textContent=triagePreview?counts.other:'—';
+  $('triageOther').textContent=triagePreview?otherCount:'—';
   $('triageInbox').textContent=triagePreview?counts.inbox:'—';
   $('triageReview').textContent=triagePreview?rows.filter(r=>r.review_hints?.length).length:'—';
   const filter=$('triageFilter').value, q=$('triageSearch').value.trim().toLowerCase();
@@ -2193,8 +2299,8 @@ function renderTriage(){
   $('triageRows').innerHTML=shown.map(r=>'<tr class="border-b border-line/70" data-uid="'+escapeHtml(r.uid)+'">'
     +'<td class="py-3 pr-3 min-w-[230px]"><div class="text-cream font-medium">'+escapeHtml(r.subject||'(no subject)')+'</div><div class="text-muted text-xs mt-1">'+escapeHtml(r.sender)+'</div></td>'
     +'<td class="py-3 pr-3 text-muted text-xs whitespace-nowrap">'+escapeHtml(r.date||'Unknown')+'</td>'
-    +'<td class="py-3 pr-3 min-w-[130px]"><span class="text-cream">'+escapeHtml(r.category==='inbox'?'Inbox':r.category==='social'?'Social':'Other')+'</span><div class="text-muted text-xs">'+escapeHtml(r.reason)+'</div>'+(r.source_matches?.length?'<div class="text-muted text-xs mt-1">Source: '+escapeHtml(r.source_matches.join(', '))+'</div>':'')+(r.review_hints?.length?'<div class="text-warn text-xs mt-1">Review hint: '+escapeHtml(r.review_hints.join('; '))+'</div>':'')+'</td>'
-    +'<td class="py-3 min-w-[185px]"><select class="field text-xs triageDest"><option value="">Choose folder</option><option value="social" '+(r.category==='social'?'selected':'')+'>Social</option><option value="other" '+(r.category==='other'?'selected':'')+'>Other</option></select>'
+    +'<td class="py-3 pr-3 min-w-[130px]"><span class="text-cream">'+escapeHtml(r.category==='inbox'?'Inbox':(SORT_FOLDERS[r.category]||r.category))+'</span><div class="text-muted text-xs">'+escapeHtml(r.reason)+'</div>'+(r.source_matches?.length?'<div class="text-muted text-xs mt-1">Source: '+escapeHtml(r.source_matches.join(', '))+'</div>':'')+(r.review_hints?.length?'<div class="text-warn text-xs mt-1">Review hint: '+escapeHtml(r.review_hints.join('; '))+'</div>':'')+'</td>'
+    +'<td class="py-3 min-w-[185px]"><select class="field text-xs triageDest"><option value="">Choose folder</option>'+Object.entries(SORT_FOLDERS).map(([k,v])=>'<option value="'+k+'" '+(r.category===k?'selected':'')+'>'+v+'</option>').join('')+'</select>'
     +'<label class="flex items-center gap-2 text-xs text-muted mt-2"><input class="triageTrain" type="checkbox" '+(r.category!=='inbox' && senderKinds.get(r.sender).size===1?'checked':'')+'> Remember this sender</label>'
     +'<div class="flex gap-3 mt-2"><button class="triageMove text-brand-light text-xs hover:underline" type="button">Move message</button><button class="triageKeep text-muted text-xs hover:text-cream" type="button">Keep sender</button></div></td></tr>').join('');
   $('triageRows').querySelectorAll('tr[data-uid]').forEach(tr=>{
@@ -2232,14 +2338,14 @@ async function loadTriageRules(){
 }
 async function moveTriageRow(row,tr){
   const category=tr.querySelector('.triageDest').value;
-  if(!category){ toastErr('Choose Social or Other first.'); return; }
-  const folder=category==='social'?'INBOX.Social':'INBOX.Other';
-  if(!(await confirmDialog({title:'Move this message?',message:'Move only “'+row.subject+'” from '+row.sender+' to '+folder+'?',okText:'Move to '+folder}))) return;
+  if(!category){ toastErr('Choose a folder first.'); return; }
+  const label=SORT_FOLDERS[category];
+  if(!(await confirmDialog({title:'Move this message?',message:'Move only “'+row.subject+'” from '+row.sender+' to '+label+'?',okText:'Move to '+label}))) return;
   try{
     const train=tr.querySelector('.triageTrain').checked;
-    await api('/api/triage/move',{sid:SID,uid:row.uid,uidvalidity:triagePreview.uidvalidity,
+    const d=await api('/api/triage/move',{sid:SID,uid:row.uid,uidvalidity:triagePreview.uidvalidity,
       sender:row.sender,subject:row.subject,date:row.date,category,train});
-    toast('Moved to '+folder+'.','border-ok/50 bg-ok/15 text-ok');
+    toast('Moved to '+d.folder+'.','border-ok/50 bg-ok/15 text-ok');
     await loadTriage();
   }catch(e){ toastErr(e.message); }
 }

@@ -53,3 +53,18 @@ manual-review reason. Other sender results remain in the report.
 Only a saved affirmative model verdict may skip a later model call. A sender
 that the heuristic selected without a model verdict does not count as
 confirmed spam.
+
+# Auto-sort rules
+
+`--autosort` moves new INBOX mail to sort folders. It never deletes mail.
+
+- Layer order: flagged, protected, your rule, learned rule, Sent trust,
+  receipts, social, notifications, news, promotions, CC, saved AI rule, AI
+  fallback, INBOX.
+- `List-Unsubscribe` alone and transactional ESP headers alone never pick a
+  folder.
+- A message that auto-sort moved once is never moved again by auto-sort.
+- Learning looks at mail received in the last 30 days in INBOX and the sort
+  folders. A message you moved elsewhere teaches nothing.
+- AI rules never replace your own or learned rules. An AI answer below the
+  minimum confidence (default 0.8) only adds the sender to the review list.

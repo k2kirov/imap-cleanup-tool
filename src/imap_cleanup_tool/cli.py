@@ -91,6 +91,13 @@ def _add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--delete-folder", metavar="NAME",
                         help="Delete a non-system folder/label on the server "
                              "and exit.")
+    parser.add_argument("--autosort", action="store_true",
+                        help="Auto-sort new INBOX mail into Social, News, "
+                             "Promotions, Notifications, Receipts and CC folders. "
+                             "Moves only, never deletes. Add --dry-run to preview.")
+    parser.add_argument("--backlog", action="store_true",
+                        help="With --autosort: also sort mail received before "
+                             "auto-sort first ran.")
     parser.add_argument("--ai-cleanup", action="store_true",
                         help="AI cleanup: score senders heuristically, ask an "
                              "LLM to judge those above --ai-threshold, then "
@@ -353,7 +360,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # Resolve any remaining None boolean defaults to False
     for flag in ("move", "dry_run", "yes", "verbose", "ai_cleanup",
                  "ai_report_only", "ai_flag_spam", "expunge", "gmail_trash", "empty_folder",
-                 "ai_scan_all", "ai_review_obsolete"):
+                 "ai_scan_all", "ai_review_obsolete", "autosort", "backlog"):
         if getattr(args, flag, None) is None:
             setattr(args, flag, False)
 
@@ -554,6 +561,35 @@ def _run_operation(conn, args: argparse.Namespace, folders: list[str]) -> None:
     _notify_cli(args, folders, total,
                 gmail=args.gmail_trash and not args.move, kind=kind,
                 dest=(args.dest_folder or "") if args.move else "")
+
+
+def _run_autosort(conn, args: argparse.Namespace, user: str) -> int:
+    """One auto-sort pass; the log lines land in the scheduled-job log file."""
+    from . import autosort
+    try:
+        result = autosort.run(conn, user, dry_run=args.dry_run, backlog=args.backlog,
+                              ai_model=args.ai_model)
+    except autosort.Busy as exc:
+        core.logger.warning("%s", exc)
+        return 0
+    except ValueError as exc:
+        core.logger.error("Auto-sort stopped: %s", exc)
+        return 2
+    verb = "Would move" if result.dry_run else "Moved"
+    for item in result.planned:
+        core.logger.info("%s %s | %s -> %s (%s: %s)", verb, item["sender"],
+                         item["subject"], item["folder"], item["layer"], item["reason"])
+    for note in result.skipped:
+        core.logger.warning("%s", note)
+    if result.ai_note:
+        core.logger.info("AI layer skipped: %s", result.ai_note)
+    if result.ai_pending:
+        core.logger.info("Would ask the AI about %d sender(s): %s", len(result.ai_pending),
+                         ", ".join(result.ai_pending))
+    core.logger.info("Auto-sort done: %d moved, %d planned, %d rules learned, "
+                     "%d senders trusted.", result.moved, len(result.planned),
+                     result.learned, result.trusted)
+    return 0
 
 
 def _parse_ai_weights(items: list[str]) -> dict:
@@ -934,6 +970,8 @@ def main(argv: list[str] | None = None) -> int:
                                   account=user, save_path=args.save_senders,
                                   cache=cache)
             return 0
+        if args.autosort:
+            return _run_autosort(conn, args, user)
         if args.ai_cleanup:
             if args.move and not (args.dest_folder and args.dest_folder.strip()):
                 print("[ERROR] --move requires --dest-folder NAME.")

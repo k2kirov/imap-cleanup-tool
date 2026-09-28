@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
-from contextlib import closing
 from dataclasses import dataclass
 from email import message_from_bytes
 from functools import lru_cache
 from pathlib import Path
 
-from . import core
+from . import core, sortstore
 from .scheduler import config_dir
 
 
@@ -53,7 +51,11 @@ def _compiled_rule(pattern: str) -> re.Pattern:
     return re.compile(pattern, re.IGNORECASE)
 
 
-DESTINATIONS = {"social": "INBOX.Social", "other": "INBOX.Other"}
+CATEGORY_FOLDERS = {"social": "Social", "news": "News", "promotions": "Promotions",
+                    "notifications": "Notifications", "receipts": "Receipts",
+                    "cc": "CC"}
+# "other" is the old manual-tab name of the Promotions folder.
+LEGACY_CATEGORIES = {"other": "promotions"}
 _SOCIAL_SUBJECT_PATTERN = (
     r"\b(?:people viewed your profile|profile views?|connection request|"
     r"new follower|started following you|mentioned you|reacted to your post|"
@@ -259,20 +261,10 @@ def rules_path() -> Path:
     return config_dir() / "triage_rules.sqlite"
 
 
-def _rules_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(rules_path())
-    conn.execute("CREATE TABLE IF NOT EXISTS sender_rule ("
-                 "account TEXT NOT NULL, sender TEXT NOT NULL, category TEXT NOT NULL,"
-                 "PRIMARY KEY (account, sender))")
-    return conn
-
-
 def sender_rules(account: str) -> dict[str, str]:
-    """Return the user's explicit sender choices for one mailbox."""
-    with closing(_rules_db()) as conn:
-        return dict(conn.execute(
-            "SELECT sender, category FROM sender_rule WHERE account=?",
-            (account.strip().lower(),)).fetchall())
+    """Return the saved sender choices for one mailbox (any rule source)."""
+    return {sender: rule["category"]
+            for sender, rule in sortstore.rules(account).items()}
 
 
 def sender_rule_definitions(account: str) -> list[dict[str, str]]:
@@ -285,26 +277,76 @@ def sender_rule_definitions(account: str) -> list[dict[str, str]]:
 
 
 def train_sender(account: str, sender: str, category: str) -> None:
-    """Remember an explicit choice for future previews; Inbox is a keep rule."""
-    if category not in {*DESTINATIONS, "inbox"}:
-        raise ValueError("Choose Inbox, Social, or Other.")
-    with closing(_rules_db()) as conn:
-        with conn:
-            conn.execute("INSERT INTO sender_rule (account, sender, category) "
-                         "VALUES (?, ?, ?) ON CONFLICT(account, sender) DO UPDATE "
-                         "SET category=excluded.category",
-                         (account.strip().lower(), sender.strip().lower(), category))
+    """Remember an explicit choice for future sorting; Inbox is a keep rule."""
+    category = LEGACY_CATEGORIES.get(category, category)
+    if category not in sortstore.VALID_CATEGORIES:
+        raise ValueError("Choose Inbox or a sort folder.")
+    sortstore.save_rule(account, sender, category, "user")
 
 
 def forget_sender(account: str, sender: str) -> None:
-    with closing(_rules_db()) as conn:
-        with conn:
-            conn.execute("DELETE FROM sender_rule WHERE account=? AND sender=?",
-                         (account.strip().lower(), sender.strip().lower()))
+    sortstore.forget_rule(account, sender)
+
+
+_INBOX_LIST_LINE = re.compile(r'^\([^)]*\)\s+"(.)"\s+"?INBOX"?\s*$', re.IGNORECASE)
+
+
+def hierarchy_delimiter(conn) -> str:
+    """The server's folder separator from the LIST line for INBOX; "." if absent."""
+    status, data = conn.list()
+    if status == "OK":
+        for item in data or []:
+            line = item.decode(errors="replace") if isinstance(item, bytes) else str(item or "")
+            match = _INBOX_LIST_LINE.match(line.strip())
+            if match:
+                return match.group(1)
+    return "."
+
+
+def folder_name(category: str, delimiter: str = ".") -> str:
+    category = LEGACY_CATEGORIES.get(category, category)
+    if category not in CATEGORY_FOLDERS:
+        raise ValueError("Choose a sort folder.")
+    return f"INBOX{delimiter}{CATEGORY_FOLDERS[category]}"
+
+
+def folder_for(conn, category: str) -> str:
+    return folder_name(category, hierarchy_delimiter(conn))
+
+
+def _capabilities(conn) -> set[str]:
+    return {c.decode().upper() if isinstance(c, bytes) else str(c).upper()
+            for c in getattr(conn, "capabilities", ())}
+
+
+def move_uid(conn, uid: str, destination: str) -> None:
+    """Move one UID out of the selected folder: MOVE, else COPY + STORE + UID EXPUNGE."""
+    capabilities = _capabilities(conn)
+    target = core._quote_mailbox(destination)
+    if "MOVE" in capabilities:
+        status, _ = conn.uid("MOVE", uid.encode(), target)
+        if status != "OK":
+            raise ValueError("The server did not move the message.")
+        return
+    if "UIDPLUS" not in capabilities:
+        raise ValueError("The server needs MOVE or UIDPLUS for a safe move.")
+    status, _ = conn.uid("COPY", uid.encode(), target)
+    if status != "OK":
+        raise ValueError("The server did not copy the message.")
+    status, _ = conn.uid("STORE", uid.encode(), "+FLAGS", r"(\Deleted)")
+    if status != "OK":
+        raise ValueError("The copy succeeded, but the source remains in place.")
+    status, _ = conn.uid("EXPUNGE", uid.encode())
+    if status != "OK":
+        raise ValueError("The copy succeeded, but the source remains in place.")
 
 
 def classify(row: dict, rules: dict[str, str] | None = None) -> tuple[str, str]:
-    """Return (inbox/social/other, short reason). Protected topics win."""
+    """Return (category, short reason). Protected topics win.
+
+    The category is "inbox" or one of rulepacks.CATEGORIES (social, news,
+    promotions, notifications, receipts, cc).
+    """
     sender = row["sender"].lower()
     subject = row["subject"]
     matched = row.get("source_matches")
@@ -318,21 +360,21 @@ def classify(row: dict, rules: dict[str, str] | None = None) -> tuple[str, str]:
                         re.IGNORECASE)):
         return "inbox", "Protected subject or source rule"
     learned = (rules or {}).get(sender)
-    if learned in {*DESTINATIONS, "inbox"}:
+    if learned in sortstore.VALID_CATEGORIES:
         return learned, "From (address) is equal to saved sender"
     if (any(rule.matches(row) for rule in _SOCIAL_FROM_RULES)
             and _SOCIAL_SUBJECT_RULE.matches(row)):
         return "social", "From (address) matches social domain; Subject matches activity"
     if core._old_service_alert(subject, row["date"]):
-        return "other", "Subject matches service alert; Date is over 180 days old"
+        return "promotions", "Subject matches service alert; Date is over 180 days old"
     if _OTHER_SUBJECT.search(subject):
-        return "other", "Subject matches promotion or newsletter"
+        return "promotions", "Subject matches promotion or newsletter"
     domain = sender.rsplit("@", 1)[-1] if "@" in sender else ""
     if "Free Time" in matched and not any(
             _domain_matches(domain, social) for social in _SOCIAL_DOMAINS):
-        return "other", "inpector Free Time rule"
+        return "promotions", "inpector Free Time rule"
     if "Mailinglists" in matched:
-        return "other", "inpector Mailinglists rule"
+        return "promotions", "inpector Mailinglists rule"
     return "inbox", "No rule matched"
 
 
@@ -398,13 +440,11 @@ def preview(conn, account: str, *, folder: str = "INBOX") -> dict:
 
 def move_checked(conn, *, uid: str, uidvalidity: str, sender: str,
                  subject: str, date: str, category: str) -> str:
-    """Move one still-matching message to a review folder. Never use Trash."""
-    if category not in DESTINATIONS:
-        raise ValueError("Choose Social or Other.")
+    """Move one still-matching message to a sort folder. Never use Trash."""
+    destination = folder_for(conn, category)
     if not uid.isascii() or not uid.isdecimal() or int(uid) <= 0:
         raise ValueError("Invalid message UID.")
-    capabilities = {c.decode().upper() if isinstance(c, bytes) else c.upper()
-                    for c in getattr(conn, "capabilities", ())}
+    capabilities = _capabilities(conn)
     if "MOVE" not in capabilities and "UIDPLUS" not in capabilities:
         raise ValueError("The server needs MOVE or UIDPLUS for a safe move.")
     status, _ = conn.select("INBOX", readonly=False)
@@ -416,21 +456,7 @@ def move_checked(conn, *, uid: str, uidvalidity: str, sender: str,
     if (row is None or row["uid"] != uid or row["sender"].lower() != sender.lower()
             or row["subject"] != subject or row["date"] != date):
         raise ValueError("Message changed or left the inbox. Scan again.")
-    destination = DESTINATIONS[category]
     if destination not in core.list_folders(conn):
         core.create_folder(conn, destination)
-    if "MOVE" in capabilities:
-        status, _ = conn.uid("MOVE", uid.encode(), core._quote_mailbox(destination))
-        if status != "OK":
-            raise ValueError("The server did not move the message.")
-    else:
-        status, _ = conn.uid("COPY", uid.encode(), core._quote_mailbox(destination))
-        if status != "OK":
-            raise ValueError("The server did not copy the message.")
-        status, _ = conn.uid("STORE", uid.encode(), "+FLAGS", r"(\Deleted)")
-        if status != "OK":
-            raise ValueError("The copy succeeded, but the source remains in INBOX.")
-        status, _ = conn.uid("EXPUNGE", uid.encode())
-        if status != "OK":
-            raise ValueError("The copy succeeded, but the source remains in INBOX.")
+    move_uid(conn, uid, destination)
     return destination

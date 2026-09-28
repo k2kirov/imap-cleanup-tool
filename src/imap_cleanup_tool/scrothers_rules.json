@@ -1,0 +1,37 @@
+{
+  "source": "https://github.com/scrothers/sieve-filters",
+  "commit": "76d7728181cb2b2df3c072e242a0bd7e9b938873",
+  "license": "MIT",
+  "notice": "Copyright (c) 2022 Steven Crothers",
+  "scope": "From-domain lists of social_media.sieve and shopping.sieve only.",
+  "categories": {
+    "social": [
+      {"match": "facebookmail.com", "scope": "subdomains"},
+      {"match": "redditmail.com", "scope": "subdomains"}
+    ],
+    "promotions": [
+      {"match": "b.cabelas.com", "scope": "subdomains"},
+      {"match": "comms.activision.com", "scope": "subdomains"},
+      {"match": "e-mail.gopro.com", "scope": "subdomains"},
+      {"match": "e.fitbit.com", "scope": "subdomains"},
+      {"match": "e.godiva.com", "scope": "subdomains"},
+      {"match": "e2.bathandbodyworks.com", "scope": "subdomains"},
+      {"match": "ea.tractorsupply.com", "scope": "subdomains"},
+      {"match": "em.harborfreight.com", "scope": "subdomains"},
+      {"match": "email.aarons.com", "scope": "subdomains"},
+      {"match": "email.bedbathandbeyond.com", "scope": "subdomains"},
+      {"match": "emailinfo.buffalowildwings.com", "scope": "subdomains"},
+      {"match": "emails.monoprice.com", "scope": "subdomains"},
+      {"match": "engage.windows.com", "scope": "subdomains"},
+      {"match": "littlecaesars.fbmta.com", "scope": "subdomains"},
+      {"match": "mail.zillow.com", "scope": "subdomains"},
+      {"match": "mailer.humblebundle.com", "scope": "subdomains"},
+      {"match": "members.wayfair.com", "scope": "subdomains"},
+      {"match": "menard.messages1.com", "scope": "subdomains"},
+      {"match": "microcenterinsider.com", "scope": "subdomains"},
+      {"match": "p.touchofmodern.com", "scope": "subdomains"},
+      {"match": "promo.newegg.com", "scope": "subdomains"},
+      {"match": "shop.meijer.com", "scope": "subdomains"}
+    ]
+  }
+}

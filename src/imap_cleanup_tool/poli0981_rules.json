@@ -1,0 +1,2404 @@
+{
+  "source": "https://github.com/poli0981/proton-sieve-filters",
+  "commit": "20fe383b94db4894f9a2a8525a807f65d9ed232b",
+  "license": "CC0-1.0",
+  "scope": "Sender domains only, from data/categories/*.yml. Keyword groups are not used.",
+  "categories": {
+    "social": [
+      {
+        "match": "17.live",
+        "scope": "subdomains"
+      },
+      {
+        "match": "air.chat",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ameba.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "askfm.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "badoo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "beeper.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "behance.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bere.al",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bigo.tv",
+        "scope": "subdomains"
+      },
+      {
+        "match": "blogger.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "briarproject.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bsky.social",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bumble.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "careerbuilder.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "clubhouse.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "coverstar.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "curse.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cyworld.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "digg.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dingtalk.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "discord.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dispo.fun",
+        "scope": "subdomains"
+      },
+      {
+        "match": "douyin.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "eharmony.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "element.io",
+        "scope": "subdomains"
+      },
+      {
+        "match": "facebook.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "feishu.cn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fiverr.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "freelancer.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "friendster.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "getsession.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "giphy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "glassdoor.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gree.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "guilded.gg",
+        "scope": "subdomains"
+      },
+      {
+        "match": "guru.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hackernews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hi5.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hinge.co",
+        "scope": "subdomains"
+      },
+      {
+        "match": "imgur.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "indeed.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "instagram.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jagat.io",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kakao.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kick.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lapse.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lark.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "line.me",
+        "scope": "subdomains"
+      },
+      {
+        "match": "liveme.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mastodon.social",
+        "scope": "subdomains"
+      },
+      {
+        "match": "match.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "matrix.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mattermost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "messenger.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mewe.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "migente.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mixi.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "monster.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mumble.info",
+        "scope": "subdomains"
+      },
+      {
+        "match": "myspace.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "niconico.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "noplace.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "obs.live",
+        "scope": "subdomains"
+      },
+      {
+        "match": "odnoklassniki.ru",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ok.ru",
+        "scope": "subdomains"
+      },
+      {
+        "match": "okcupid.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "overwolf.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pinterest.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pixiv.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "plentyoffish.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "poparazzi.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "qq.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "raidcall.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "restream.io",
+        "scope": "subdomains"
+      },
+      {
+        "match": "revolt.chat",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rocket.chat",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sharechat.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "signal.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "skype.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "slack.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "slashdot.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "snapchat.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sonico.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "spaces.live",
+        "scope": "subdomains"
+      },
+      {
+        "match": "steam.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "streamlabs.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "streamyard.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tagged.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "taringa.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "teamspeak.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "telegram.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tenor.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tenten.app",
+        "scope": "subdomains"
+      },
+      {
+        "match": "texts.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "threads.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "threema.ch",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tiktok.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "toptal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tuenti.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tumblr.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "twitch.tv",
+        "scope": "subdomains"
+      },
+      {
+        "match": "twitter.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "uplive.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "upwork.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ventrilo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vero.co",
+        "scope": "subdomains"
+      },
+      {
+        "match": "viber.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vk.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wechat.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "weibo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "whatsapp.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wickr.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wire.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wordpress.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "x.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "xiaohongshu.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "xing.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "younow.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zalo.me",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ziprecruiter.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zoosk.com",
+        "scope": "subdomains"
+      }
+    ],
+    "news": [
+      {
+        "match": "9to5mac.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "abcnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "accuweather.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "aljazeera.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "androidpolice.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ansa.it",
+        "scope": "subdomains"
+      },
+      {
+        "match": "apnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "arabnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "arstechnica.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "athleticnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "avclub.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "axios.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ballotpedia.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "barrons.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "beehiiv.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bleacherreport.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bloomberg.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bostonglobe.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "breitbart.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "businessinsider.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "buzzfeed.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "c4isrnet.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "campaignmonitor.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cbsnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cbssports.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cdc.gov",
+        "scope": "subdomains"
+      },
+      {
+        "match": "chicagotribune.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cleveland.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cnbc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cnet.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cnn.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "constantcontact.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "convertkit.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cookpolitical.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cyberscoop.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dailykos.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dailywire.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dallasnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "defensenews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "denverpost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dw.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "economist.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "engadget.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "espn.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "euronews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fastcompany.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "federalnewsnetwork.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "firetimes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fool.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "forbes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fortune.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "foxnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "foxsports.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "france24.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ft.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "getpocket.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ghost.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gizmodo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "govtech.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "haaretz.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "harpers.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "houstonchronicle.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "huffpost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "inc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jacobinmag.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "japan.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "koreatimes.co.kr",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kyodonews.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "latimes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "livescience.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mailchimp.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "marketwatch.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mashable.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "medium.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "miamiherald.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "militarytimes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "money.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "motherjones.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "msnbc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nationaljournal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nationalreview.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nbcnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nbcsports.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "newrepublic.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "newscientist.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "newsletter.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "newyorker.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "noaa.gov",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nola.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nws.noaa.gov",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nypost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nytimes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "oregonlive.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pbs.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "policyone.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "politico.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pri.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "propublica.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "quartz.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "reason.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "redstate.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "reuters.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "revealnews.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rollcall.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rollingstone.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rt.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "salon.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sbnation.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sciencedaily.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sciencemag.org",
+        "scope": "subdomains"
+      },
+      {
+        "match": "scientificamerican.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "scmp.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "seattletimes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sfgate.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "si.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "skysports.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "slate.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "space.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sputniknews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "substack.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tass.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "techcrunch.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "techradar.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theathletic.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theatlantic.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thedailybeast.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theguardian.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thehill.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theintercept.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thejakartapost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thenation.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theregister.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theringer.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "theverge.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "townhall.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "usatoday.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "usnews.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "venturebeat.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vox.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vulture.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "washingtonpost.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "weather.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "weatherchannel.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "who.int",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wired.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wsj.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "xinhuanet.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "yahoo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "yonhapnews.co.kr",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zdnet.com",
+        "scope": "subdomains"
+      }
+    ],
+    "receipts": [
+      {
+        "match": "17track.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "adyen.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "affirm.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "afterpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "aftership.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "alipay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "almondfintech.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazonpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "americanexpress.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "apple.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "aramex.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "auspost.com.au",
+        "scope": "subdomains"
+      },
+      {
+        "match": "authorize.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bankofamerica.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "barclays.co.uk",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bestbuy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bill.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "binance.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bitcoin.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bitfinex.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bitpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bitstamp.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "blockchain.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bluedart.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bluesnap.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bnpparibas.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "braintree.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bunq.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bybit.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "canadapost-postescanada.ca",
+        "scope": "subdomains"
+      },
+      {
+        "match": "chargebee.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "chase.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "checkout.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "citi.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "coinbase.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "correos.es",
+        "scope": "subdomains"
+      },
+      {
+        "match": "crypto.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dbs.com.sg",
+        "scope": "subdomains"
+      },
+      {
+        "match": "delhivery.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "deutschepost.de",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dhl.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "discover.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dlocal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dpd.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dyneti.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "easyship.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebanx.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "etsy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "evri.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fastspring.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fedex.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "finix.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "flutterwave.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gemini.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ghn.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "giaohangtietkiem.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gls-group.eu",
+        "scope": "subdomains"
+      },
+      {
+        "match": "goshippo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hdfcbank.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hsbc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hyperwallet.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "icicibank.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ing.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "intuit.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "japanpost.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jpmorgan.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jtexpress.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "klarna.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kraken.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kucoin.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "laposte.fr",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lasership.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "laybuy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ledger.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lloydsbank.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mastercard.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mbbank.com.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mercadopago.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "metamask.io",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mollie.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "monzo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "n26.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "natwest.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "neteller.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ninjavan.co",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nuvei.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nzpost.co.nz",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ocbc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "okx.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ontrac.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "paddle.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pagseguro.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "parcelforce.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "payoneer.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "paypal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "payrix.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "paysafecard.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "paystack.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "paytm.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "payu.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "poste.it",
+        "scope": "subdomains"
+      },
+      {
+        "match": "postnl.nl",
+        "scope": "subdomains"
+      },
+      {
+        "match": "purolator.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rabobank.nl",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rapyd.net",
+        "scope": "subdomains"
+      },
+      {
+        "match": "razorpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "recurly.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "revolut.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "royalmail.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "santander.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sendcloud.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sezzle.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sf-express.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "shopify.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "skrill.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "societegenerale.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "splitit.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "squareup.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "starlingbank.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "staxpayments.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "stripe.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sumup.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "target.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "techcombank.com.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tipalti.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tnt.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "trezor.io",
+        "scope": "subdomains"
+      },
+      {
+        "match": "uob.com.sg",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ups.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "usbank.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "usps.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "venmo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "verifone.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vietcombank.com.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "viettelpost.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "visa.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vnpost.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vpbank.com.vn",
+        "scope": "subdomains"
+      },
+      {
+        "match": "walmart.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wechatpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wellsfargo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wise.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "worldpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "xsolla.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zettle.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zip.co",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zuora.com",
+        "scope": "subdomains"
+      }
+    ],
+    "promotions": [
+      {
+        "match": "abebooks.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "abercrombie.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "academy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "acer.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ae.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "aeropostale.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ajio.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "albertsons.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "alibaba.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "aliexpress.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.ca",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.co.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.co.uk",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.com.au",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.de",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.es",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.fr",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.in",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazon.it",
+        "scope": "subdomains"
+      },
+      {
+        "match": "amazonfresh.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "anthropologie.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "artfire.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "asics.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "asus.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "athleta.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "backcountry.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bananarepublic.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "banggood.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "barnesandnoble.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bathandbodyworks.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "beautybrands.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bedbathandbeyond.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "belk.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bhphotovideo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "birkenstock.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bjs.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bloomingdales.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bonanza.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "bookdepository.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "booksamillion.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "boscovs.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cabelas.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "cafepress.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "champssports.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "clarks.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "clinique.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "columbia.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "containerstore.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "converse.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "costco.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "crateandbarrel.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "crocs.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "customink.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dell.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dermstore.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dhgate.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dickssportinggoods.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dillards.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "discovery.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "disney.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dji.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "dsw.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "eastbay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.ca",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.co.uk",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.de",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.es",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ebay.fr",
+        "scope": "subdomains"
+      },
+      {
+        "match": "express.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "famousfootwear.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "fashionphile.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "finishline.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "flipkart.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "footaction.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "footlocker.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "forever21.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "freepeople.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gap.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "gopro.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hbomax.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hm.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hollisterco.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "homedepot.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "homegoods.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "hp.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ikea.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jcpenney.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jcrew.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "jd.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kiehls.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kohls.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "kroger.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lazada.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lenovo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lg.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lordandtaylor.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lowes.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lululemon.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "lushusa.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "maccosmetics.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "macys.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "madewell.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "menards.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "mercari.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "moosejaw.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "myntra.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "neimanmarcus.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "newbalance.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nordstrom.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nordstromrack.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "nykaa.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "oldnavy.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "overstock.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "patagonia.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "pier1.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "poshmark.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "potterybarn.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "powells.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "printful.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "publix.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "puma.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "quadpay.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rakuten.co.jp",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rakuten.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rebag.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "redbubble.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "rei.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "safeway.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "saksfifthavenue.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sallybeauty.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "samsclub.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sephora.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "shein.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "shopee.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "shutterfly.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "skechers.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "skinstore.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "snapdeal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "snapfish.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "society6.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sony.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "sportsmans.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "spreadshirt.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "square.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "taobao.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "teespring.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "temu.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tesla.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thebodyshop.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thenorthface.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "therealreal.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "threadless.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thredup.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "thriftbooks.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tigerdirect.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "timberland.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tjmaxx.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "tmall.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ugg.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "ulta.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "underarmour.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "uniqlo.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "urbanoutfitters.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vans.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vestiairecollective.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "vistaprint.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wayfair.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wegmans.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "westelm.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "whatgoesaroundnyc.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wholefoodsmarket.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "williams-sonoma.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "wish.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "worldmarket.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zappos.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zara.com",
+        "scope": "subdomains"
+      },
+      {
+        "match": "zazzle.com",
+        "scope": "subdomains"
+      }
+    ]
+  }
+}
