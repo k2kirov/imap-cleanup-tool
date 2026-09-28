@@ -46,6 +46,37 @@ class ChainTests(unittest.TestCase):
     def test_receipts_by_subject(self):
         d = sortchain.decide(row("shop@brand.test", "Your order #123 has shipped"), ctx())
         self.assertEqual(d.category, "receipts")
+        d = sortchain.decide(row("billing-noreply@linkedin.com",
+                                 "Your LinkedIn Order 7685804513"), ctx())
+        self.assertEqual(d.category, "receipts")
+
+    def test_sales_mail_is_not_a_receipt(self):
+        for sender, subject in (
+            ("dayna.beddall@growth.stripe.com", "Re: ForkPoint's international customers"),
+            ("sales@brand.test", "Boost your Salesforce delivery"),
+            ("sales@brand.test", "A health benefits package to suit your needs"),
+        ):
+            with self.subTest(subject=subject):
+                self.assertIsNone(sortchain.decide(row(sender, subject), ctx()))
+
+    def test_human_update_and_reminder_stay_in_inbox(self):
+        for subject in ("Any updates?", "FW: Signal Issues and Updated handsets",
+                        "reminder, Merry"):
+            with self.subTest(subject=subject):
+                self.assertIsNone(sortchain.decide(row("person@company.test", subject), ctx()))
+
+    def test_account_security_mail_stays_in_inbox(self):
+        for sender, subject in (
+            ("security-noreply@linkedin.com", "Remember me is no longer active on your device"),
+            ("notifications@phantombuster.com", "Activate your PhantomBuster account"),
+            ("no-reply@forkpoint.com", "Please confirm to continue"),
+            ("admin@forkpoint.com", "Notification: Confirm mailbox access"),
+            ("noreply@email.zoominformation.com",
+             "Notice of personal information processing"),
+        ):
+            with self.subTest(subject=subject):
+                self.assertEqual(sortchain.decide(row(sender, subject), ctx()).category,
+                                 "inbox")
 
     def test_social_by_domain(self):
         d = sortchain.decide(row("notifications@linkedin.com",

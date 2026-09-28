@@ -29,6 +29,9 @@ INBOX_DEFAULT = Decision("inbox", "default", "No rule matched")
 # shipping words must reach the Receipts layer.
 PROTECTED_SUBJECT = re.compile(
     r"\b(?:pin|sign[ -]?in|log[ -]?in|password|passwort|verif\w*|"
+    r"remember me|activat\w*[^\n]*\baccount|please confirm|"
+    r"personal information processing|privacy notice|"
+    r"confirm[^\n]*\b(?:mailbox|account)|incoming messages[^\n]*\bdelayed|"
     r"(?:security|verification|login|sign[ -]?in|one[- ]time|confirmation|"
     r"bestätigungs|sicherheits|anmelde)[ -]?code|otp|2fa|mfa|"
     r"appointment|termin|booking|reservation|flight|boarding pass|hotel|"
@@ -41,6 +44,9 @@ _CALENDAR = re.compile(
     re.IGNORECASE)
 _NEWS_SIGNALS = frozenset({"list_post", "mailman", "newsletter_platform"})
 _MARKETING_SIGNALS = frozenset({"marketing_esp", "campaign_feedback"})
+_RECEIPT_SENDER = re.compile(
+    r"^(?:billing|invoices?|receipts?|orders?|payments?|checkout)(?:[-_.+].*)?$",
+    re.IGNORECASE)
 
 
 def decide(row: dict, ctx: Context) -> Decision | None:
@@ -65,8 +71,9 @@ def decide(row: dict, ctx: Context) -> Decision | None:
 
     pack = rulepacks.domain_category(domain)
     pack_category, pack_source = pack if pack else ("", "")
-    if (pack_category == "receipts" or signals.RECEIPTS.search(subject)
-            or rulepacks.receipt_subject(subject) or "fastmail_receipts" in sig):
+    if (signals.RECEIPTS.search(subject) or "fastmail_receipts" in sig
+            or (pack_category == "receipts"
+                and _RECEIPT_SENDER.match(sender.partition("@")[0]))):
         return Decision("receipts", "receipts",
                         pack_source if pack_category == "receipts"
                         else "Order, invoice or delivery subject")
@@ -74,8 +81,7 @@ def decide(row: dict, ctx: Context) -> Decision | None:
         return Decision("social", "social", pack_source or "Social category header")
     if ("auto_submitted" in sig or "fastmail_notifications" in sig
             or gmail == "notifications"
-            or (not sig & signals.BULK
-                and ("noreply" in sig or signals.NOTIFICATIONS.search(subject)))):
+            or (not sig & signals.BULK and "noreply" in sig)):
         return Decision("notifications", "notifications",
                         "Automated notice (Auto-Submitted, no-reply or subject)")
     if (sig & _NEWS_SIGNALS or pack_category == "news" or gmail == "news"

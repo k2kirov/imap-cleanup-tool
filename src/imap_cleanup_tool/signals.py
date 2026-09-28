@@ -6,9 +6,9 @@ import re
 from email.utils import getaddresses
 
 RECEIPTS = re.compile(
-    r"\b(receipt|invoice|order (confirm|#|no\.?|number)|your order|"
+    r"\b(receipt|invoice|order (confirm|#|no\.?|number|\d{4,})|your order|"
     r"payment (received|confirm)|thank(s| you) for your (order|purchase|payment)|"
-    r"shipped|shipping confirm|out for delivery|delivered|tracking|refund|"
+    r"shipped|shipping confirm|out for delivery|tracking (?:number|details)|refund|"
     r"subscription renewed|renewal|Rechnung|Quittung|Beleg|Bestellbestätigung|"
     r"Ihre Bestellung|Deine Bestellung|Bestellung (Nr|eingegangen)|"
     r"Zahlungsbestätigung|Zahlung erhalten|versandt|verschickt|"
